@@ -1,0 +1,39 @@
+# OS
+.DS_Store
+**/.DS_Store
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Dependencies & build
+node_modules/
+.next/
+out/
+dist/
+build/
+.svelte-kit/
+*.tsbuildinfo
+
+# Go
+backend/fazbrike-backend
+backend/*.db
+*.exe
+*.test
+
+# Uploads (keep folder via .gitkeep)
+backend/uploads/**
+!backend/uploads/.gitkeep
+
+# Nested/local tooling
+.reasonix/
+*.pem
+.vercel/
+coverage/
+npm-debug.log*
+yarn-error.log*
+
+# Nested frontend git backup (pre-monorepo)
+frontend/.git.bak-frontend/

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#f3f4f6"/>
+  <g fill="none" stroke="#d1d5db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="230" y="140" width="140" height="110" rx="8"/>
+    <circle cx="264" cy="172" r="10"/>
+    <path d="M240 240l34-30 26 20 30-26 30 36"/>
+  </g>
+  <text x="300" y="300" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="20" fill="#9ca3af" letter-spacing="3">FAZBRIKE</text>
+</svg>

@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+:root {
+  /* Cores da plataforma Fazbrike */
+  --color-primary: #0A2B42;        /* Azul-Cobalto - Cabeçalho, texto principal */
+  --color-secondary: #B589D6;       /* Púrpura/Lavanda - Destaques, ícones */
+  --color-accent: #F18F01;          /* Laranja Suave - Botões de ação */
+  --color-background: #FFFFFF;      /* Branco Puro - Fundo e espaços */
+  
+  /* Cores neutras */
+  --color-neutral-50: #f8fafc;
+  --color-neutral-100: #f1f5f9;
+  --color-neutral-200: #e2e8f0;
+  --color-neutral-300: #cbd5e1;
+  --color-neutral-400: #94a3b8;
+  --color-neutral-500: #64748b;
+  --color-neutral-600: #475569;
+  --color-neutral-700: #334155;
+  --color-neutral-800: #1e293b;
+  --color-neutral-900: #0f172a;
+  
+  /* Sombras personalizadas */
+  --shadow-primary: 0 4px 14px 0 rgba(10, 43, 66, 0.1);
+  --shadow-secondary: 0 4px 14px 0 rgba(181, 137, 214, 0.1);
+  --shadow-accent: 0 4px 14px 0 rgba(241, 143, 1, 0.1);
+}
+
+/* Variáveis CSS customizadas para Tailwind */
+
+/* Reset e estilos base */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Estilos para elementos de foco */
+*:focus {
+  outline: none;
+}
+
+/* Estilos para links */
+a {
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Estilos para botões */
+button {
+  font-family: inherit;
+}
+
+/* Estilos para inputs */
+input, textarea, select {
+  font-family: inherit;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-neutral-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400);
+}
+
+/* Animações personalizadas */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Slider styles */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-track {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #3b82f6;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: #2563eb;
+}
+
+.slider::-moz-range-track {
+  background: #e5e7eb;
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+.slider::-moz-range-thumb {
+  background: #3b82f6;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.slider::-moz-range-thumb:hover {
+  background: #2563eb;
+}
