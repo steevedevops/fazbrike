@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import { api, ApiError } from '$lib/api';
-	import { collections } from '$lib/meta';
+	import { collections, collectionsLoading } from '$lib/meta';
 	import { toast } from '$lib/toast';
-	import type { CollectionMeta } from '$lib/types';
 	import TopBar from '$lib/components/TopBar.svelte';
 	import RecordForm from '$lib/components/RecordForm.svelte';
 
@@ -18,19 +17,26 @@
 	let busy = $state(false);
 	let notFound = $state(false);
 
-	onMount(async () => {
-		if (!collection) {
-			notFound = true;
-			loading = false;
-			return;
-		}
-		try {
-			record = await api.get(collection.name, id);
-		} catch (e) {
-			notFound = true;
-		} finally {
-			loading = false;
-		}
+	// Recarrega sempre que muda a coleção ou o id na URL — antes isso rodava em
+	// onMount (uma única vez), então navegar entre registros pelo menu deixava a
+	// tela presa no registro anterior ou em "não encontrado".
+	$effect(() => {
+		const col = collection?.name;
+		const recordId = id;
+		if (!col || !recordId) return;
+		untrack(() => {
+			loading = true;
+			notFound = false;
+			void (async () => {
+				try {
+					record = await api.get(col, recordId);
+				} catch {
+					notFound = true;
+				} finally {
+					loading = false;
+				}
+			})();
+		});
 	});
 
 	async function save(data: Record<string, unknown>) {
@@ -51,76 +57,72 @@
 	}
 </script>
 
-{#if !collection || notFound}
+{#if !collection && $collectionsLoading}
+	<div class="spin-wrap"><div class="spinner"></div></div>
+{:else if !collection || notFound}
 	<div class="nope">
-		<h1>Registro não encontrado</h1>
-		<p>A collection <code>{name}</code> ou o registro <code>{id}</code> não existe.</p>
-		<a href="/">← Voltar para a visão geral</a>
+		<h1 class="page-title">Registro não encontrado</h1>
+		<p class="page-sub">A coleção <code>{name}</code> ou o registro <code>{id}</code> não existe.</p>
+		<a class="back" href="/">← Voltar</a>
 	</div>
 {:else if loading}
 	<div class="spin-wrap"><div class="spinner"></div></div>
 {:else}
-	<TopBar {collection} />
-	<div class="form-card">
-		<h2 class="title">Editar registro</h2>
-		{#if collection.name === 'user' && record.role === 'admin'}
-			<div class="warn">Você está editando um usuário administrador.</div>
-		{/if}
-		<RecordForm {collection} {record} {busy} onSave={save} onCancel={cancel} />
+	<div class="page">
+		<TopBar {collection} title={`Editar · ${collection.label}`} />
+		<div class="form-card">
+			{#if collection.name === 'user' && record.role === 'admin'}
+				<div class="warn">Você está editando um usuário administrador.</div>
+			{/if}
+			<RecordForm {collection} {record} {busy} onSave={save} onCancel={cancel} />
+		</div>
 	</div>
 {/if}
 
 <style>
+	.page {
+		max-width: 720px;
+		width: 100%;
+		margin: 0 auto;
+	}
 	.nope {
-		padding: 40px;
+		padding: 24px 0;
+		max-width: 720px;
+		margin: 0 auto;
 	}
-	.nope h1 {
-		font-size: 22px;
-		margin-bottom: 8px;
-	}
-	.nope a {
-		color: var(--accent-strong);
+	.back {
+		display: inline-block;
+		margin-top: 16px;
+		color: var(--accent);
 		font-weight: 600;
+		font-size: 13px;
+	}
+	code {
+		background: var(--subtle);
+		padding: 1px 6px;
+		border-radius: 4px;
+		font-size: 12px;
 	}
 	.form-card {
-		background: var(--card-bg);
+		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		padding: 26px;
-		margin-top: 6px;
-		max-width: 720px;
-		box-shadow: var(--shadow-card);
-	}
-	.title {
-		font-size: 18px;
-		font-weight: 700;
-		margin: 0 0 22px;
+		padding: 28px;
+		margin-top: 20px;
+		box-shadow: var(--shadow-xs);
 	}
 	.warn {
-		background: #fff7e6;
-		border: 1px solid #f0c36d;
-		color: #7a5900;
+		background: var(--warn-soft);
+		border: 1px solid var(--warn-border);
+		color: var(--warn);
 		border-radius: var(--radius-sm);
-		padding: 8px 12px;
-		margin-bottom: 16px;
+		padding: 10px 12px;
+		margin-bottom: 18px;
 		font-size: 13px;
 	}
 	.spin-wrap {
 		display: grid;
 		place-items: center;
-		padding: 60px;
-	}
-	.spinner {
-		width: 30px;
-		height: 30px;
-		border: 3px solid var(--border);
-		border-top-color: var(--accent-strong);
-		border-radius: 50%;
-		animation: rot 0.8s linear infinite;
-	}
-	@keyframes rot {
-		to {
-			transform: rotate(360deg);
-		}
+		padding: 64px;
 	}
 </style>

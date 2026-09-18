@@ -2,6 +2,8 @@
 	import { currentUser, logout, getActiveToken } from '$lib/auth';
 	import { goto } from '$app/navigation';
 	import { toast } from '$lib/toast';
+	import { getEnumOption } from '$lib/enums';
+	import StatusBadge from '$lib/components/StatusBadge.svelte';
 
 	let copied = $state(false);
 
@@ -11,6 +13,8 @@
 	}
 
 	const session = $derived(getActiveToken());
+	const accountRole = $derived(getEnumOption('user', 'role', $currentUser?.role));
+	const sessionRole = $derived(getEnumOption('user', 'role', session?.payload.role));
 
 	function status(exp?: number): string {
 		if (!exp) return 'indeterminado';
@@ -46,14 +50,13 @@
 	<div class="page-head">
 		<div>
 			<h1 class="page-title">Configurações</h1>
-			<p class="page-sub">Gerencie sua conta e a sessão de administrador</p>
+			<p class="page-sub">Conta e sessão de administrador</p>
 		</div>
 	</div>
 
 	<div class="grid">
-		<!-- Conta -->
 		<div class="card">
-			<h2>Conta do administrador</h2>
+			<h2>Conta</h2>
 			<div class="row">
 				<span class="k">Nome</span>
 				<span class="v">{$currentUser?.name ?? '—'}</span>
@@ -64,34 +67,37 @@
 			</div>
 			<div class="row">
 				<span class="k">Papel</span>
-				<span class="v"><span class="badge admin">Administrador</span></span>
+				<span class="v">
+					{#if accountRole}<StatusBadge option={accountRole} />{:else}—{/if}
+				</span>
 			</div>
 			<div class="card-actions">
-				<button class="btn primary" onclick={logoutClick}>Sair da conta</button>
+				<button class="btn ghost" type="button" onclick={logoutClick}>Sair da conta</button>
 			</div>
 		</div>
 
-		<!-- Sessão / Token ativo -->
 		<div class="card">
-			<h2>Token de sessão ativo</h2>
+			<h2>Sessão</h2>
 
 			{#if session}
 				<div class="token-box">
 					<code class="token-text" title={session.token}>
-						{session.token.slice(0, 40)}…{session.token.slice(-12)}
+						{session.token.slice(0, 36)}…{session.token.slice(-10)}
 					</code>
-					<button class="btn ghost" onclick={copyToken}>
-						{copied ? '✓ Copiado' : 'Copiar'}
+					<button class="btn ghost" type="button" onclick={copyToken}>
+						{copied ? 'Copiado' : 'Copiar'}
 					</button>
 				</div>
 
 				<div class="row">
-					<span class="k">Usuário (id)</span>
+					<span class="k">Usuário</span>
 					<span class="v">#{session.payload.user_id ?? '—'}</span>
 				</div>
 				<div class="row">
 					<span class="k">Papel</span>
-					<span class="v"><span class="badge">{String(session.payload.role ?? '—')}</span></span>
+					<span class="v">
+						{#if sessionRole}<StatusBadge option={sessionRole} />{:else}—{/if}
+					</span>
 				</div>
 				<div class="row">
 					<span class="k">Expira em</span>
@@ -112,66 +118,56 @@
 	</div>
 
 	<div class="card hint">
-		<h2>Como adicionar um novo módulo</h2>
+		<h2>Novo módulo</h2>
 		<p>
-			Toda collection exibida aqui vem automaticamente dos models do backend (estilo Django).
-			Ao criar um novo model em <code>backend/models</code>, registre-o em
-			<code>initAdminRegistry()</code> no <code>main.go</code> — o CRUD completo desta coleção
-			aparece aqui sem novos esforços.
+			Collections vêm dos models do backend. Ao criar um model em <code>backend/models</code>, registre-o em
+			<code>initAdminRegistry()</code> no <code>main.go</code> — o CRUD aparece automaticamente.
 		</p>
 	</div>
 </div>
 
 <style>
 	.page {
-		max-width: 860px;
+		max-width: 800px;
+		width: 100%;
+		margin: 0 auto;
 	}
 	.page-head {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		margin-bottom: 22px;
-	}
-	.page-title {
-		font-size: 22px;
-		font-weight: 700;
-		color: var(--text);
-		margin: 0;
-	}
-	.page-sub {
-		color: var(--text-muted);
-		font-size: 13px;
-		margin-top: 4px;
+		margin-bottom: 24px;
 	}
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-		gap: 16px;
-		margin-bottom: 16px;
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		gap: 12px;
+		margin-bottom: 12px;
 	}
 	.card {
-		background: var(--card-bg);
+		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		padding: 22px;
-		box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+		padding: 20px;
+		box-shadow: var(--shadow-xs);
 	}
 	.card h2 {
-		font-size: 15px;
-		font-weight: 600;
-		margin: 0 0 16px;
-		color: var(--text);
+		font-size: 13px;
+		font-weight: 650;
+		margin: 0 0 14px;
+		color: var(--ink);
+		letter-spacing: -0.01em;
 	}
 	.row {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 12px;
-		padding: 9px 0;
+		padding: 10px 0;
 		border-bottom: 1px solid var(--border);
 	}
+	.row:last-of-type {
+		border-bottom: none;
+	}
 	.k {
-		color: var(--text-muted);
+		color: var(--muted);
 		font-size: 13px;
 	}
 	.v {
@@ -181,35 +177,21 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	.badge {
-		background: var(--accent-soft);
-		color: var(--accent-strong);
-		padding: 2px 10px;
-		border-radius: 999px;
-		font-size: 12px;
-		font-weight: 700;
-	}
-	.badge.admin {
-		background: var(--sidebar-bg);
-		color: #fff;
-	}
 	.pill {
 		display: inline-flex;
-		align-items: center;
-		gap: 6px;
 		font-size: 12px;
-		color: #b45309;
-		background: rgba(245, 158, 11, 0.12);
+		color: var(--warn);
+		background: var(--warn-soft);
 		padding: 2px 10px;
 		border-radius: 999px;
 		font-weight: 600;
 	}
 	.pill.ok {
-		color: var(--accent-strong);
-		background: var(--accent-soft);
+		color: var(--success);
+		background: var(--success-soft);
 	}
 	.card-actions {
-		margin-top: 18px;
+		margin-top: 16px;
 		display: flex;
 		justify-content: flex-end;
 	}
@@ -217,11 +199,11 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		background: #f6f7f9;
+		background: var(--subtle);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
 		padding: 8px 10px;
-		margin-bottom: 14px;
+		margin-bottom: 12px;
 	}
 	.token-text {
 		flex: 1;
@@ -230,45 +212,22 @@
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		font-size: 11px;
-		color: #4b5563;
-	}
-	.btn {
-		padding: 8px 15px;
-		border-radius: var(--radius-sm);
-		font-weight: 600;
-		font-size: 13px;
-		border: 1px solid transparent;
-	}
-	.btn.primary {
-		background: var(--accent-strong);
-		color: #fff;
-	}
-	.btn.primary:hover {
-		background: #1d9c6e;
-	}
-	.btn.ghost {
-		background: #fff;
-		border-color: var(--border-strong);
-		color: var(--text);
-		font-size: 12px;
-		padding: 6px 11px;
-	}
-	.btn.ghost:hover {
-		background: #f5f5f5;
+		color: var(--muted);
 	}
 	.muted {
-		color: var(--text-muted);
+		color: var(--muted);
 		font-size: 13px;
 	}
 	.hint p {
-		color: var(--text-muted);
+		color: var(--muted);
 		font-size: 13px;
 		line-height: 1.6;
 	}
 	code {
-		background: #f3f4f6;
+		background: var(--subtle);
 		padding: 1px 5px;
 		border-radius: 4px;
 		font-size: 12px;
+		border: 1px solid var(--border);
 	}
 </style>

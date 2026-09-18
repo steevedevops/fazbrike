@@ -23,12 +23,108 @@ export interface ApiError {
 }
 
 // Tipos específicos do Fazbrike
+export interface UserProfile {
+  id: number;
+  user_id: number;
+  bio?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  state_id?: number | null;
+  city_id?: number | null;
+  avatar_url?: string;
+  banner_url?: string;
+  website?: string;
+  is_public?: boolean;
+  is_featured?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface User {
   id: number;
   email: string;
   name: string;
+  role?: string;
+  email_verified?: boolean;
   created_at: string;
   updated_at: string;
+  profile?: UserProfile;
+}
+
+export interface PublicUserProfile {
+  id: number;
+  name: string;
+  bio?: string;
+  city?: string;
+  state?: string;
+  state_id?: number | null;
+  city_id?: number | null;
+  avatar_url?: string;
+  banner_url?: string;
+  website?: string;
+  is_featured?: boolean;
+  member_since: string;
+  listings_count: number;
+  for_sale_count: number;
+  sold_count: number;
+  favorites_count: number;
+  followers_count: number;
+  following_count: number;
+  rating_average: number;
+  rating_count: number;
+  is_following?: boolean;
+}
+
+export interface MyProfileResponse {
+  user: User;
+  profile: UserProfile;
+  public?: PublicUserProfile;
+  listings_count: number;
+}
+
+export interface FollowUser {
+  id: number;
+  name: string;
+  avatar_url?: string;
+}
+
+export interface ReviewReviewer {
+  id: number;
+  name: string;
+  avatar_url?: string;
+}
+
+export interface Review {
+  id: number;
+  reviewer_id: number;
+  reviewee_id: number;
+  item_id?: number | null;
+  rating: number;
+  comment?: string;
+  created_at: string;
+  reviewer?: ReviewReviewer;
+}
+
+export interface ReviewRequest {
+  reviewee_id: number;
+  item_id?: number | null;
+  rating: number;
+  comment?: string;
+}
+
+export interface StateOption {
+  id: number;
+  name: string;
+  code: string;
+  country_id: number;
+}
+
+export interface CityOption {
+  id: number;
+  name: string;
+  state_id: number;
+  ibge?: string;
 }
 
 export interface LoginRequest {
@@ -42,9 +138,38 @@ export interface RegisterRequest {
   password: string;
 }
 
+export interface RegisterResponse {
+  message: string;
+  email: string;
+}
+
+export interface VerifyEmailCodeRequest {
+  email: string;
+  code: string;
+}
+
+export interface ResendEmailCodeRequest {
+  email: string;
+}
+
 export interface LoginResponse {
   user: User;
   token: string;
+}
+
+export interface ItemSeller {
+  id: number;
+  name: string;
+  email?: string;
+  created_at?: string;
+}
+
+export interface ItemImage {
+  id: number;
+  item_id: number;
+  url: string;
+  sort_order: number;
+  created_at?: string;
 }
 
 export interface Item {
@@ -53,12 +178,56 @@ export interface Item {
   description: string;
   price: number;
   image_url?: string;
+  images?: ItemImage[];
   category?: string;
+  listing_type?: string;
   location?: string;
+  city_id?: number | null;
+  state_id?: number | null;
+  city?: {
+    id: number;
+    name: string;
+    state_id: number;
+    state?: { id: number; name: string; code: string };
+  } | null;
   condition?: string;
+  attrs?: string;
+  status?: string;
+  sold_at?: string | null;
   user_id: number;
+  user?: ItemSeller;
   created_at: string;
   updated_at: string;
+  comments_count?: number;
+  views_count?: number;
+  favorites_count?: number;
+  is_favorited?: boolean;
+}
+
+export interface ItemComment {
+  id: number;
+  item_id: number;
+  user_id: number;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: number;
+    name: string;
+    created_at?: string;
+  };
+}
+
+export interface ApiCategory {
+  id: number;
+  slug: string;
+  name: string;
+  listing_type: string;
+  parent_id?: number | null;
+  children?: ApiCategory[];
+  sort_order?: number;
+  is_active?: boolean;
+  icon?: string;
 }
 
 // Classe principal do serviço de API
@@ -181,9 +350,9 @@ class ApiService {
     // Salvar no localStorage se disponível
     if (typeof window !== 'undefined') {
       if (token) {
-        localStorage.setItem('auth_token', token);
+        localStorage.setItem('token', token);
       } else {
-        localStorage.removeItem('auth_token');
+        localStorage.removeItem('token');
       }
     }
   }
@@ -191,7 +360,7 @@ class ApiService {
   // Obter token do localStorage
   getAuthToken(): string | null {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('auth_token');
+      return localStorage.getItem('token');
     }
     return this.authToken;
   }
@@ -272,6 +441,16 @@ class ApiService {
     }
   }
 
+  /** Upload de várias fotos (campo multipart `files`). */
+  async uploadFiles(endpoint: string, files: File[]): Promise<any> {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('files', file));
+    const response = await this.axiosInstance.post(endpoint, formData, {
+      headers: { 'Content-Type': undefined },
+    });
+    return response.data;
+  }
+
   /**
    * Download de arquivo genérico
    */
@@ -295,46 +474,100 @@ class ApiService {
     }
   }
 
-  async getMessages(itemId: number): Promise<Message[]> {
-    const response = await this.axiosInstance.get<Message[]>(`/messages/item/${itemId}`);
+  async getMessages(itemId: number, otherUserId?: number): Promise<Message[]> {
+    const params = otherUserId ? { other_user_id: otherUserId } : undefined;
+    const response = await this.axiosInstance.get<Message[]>(`/messages/item/${itemId}`, { params });
     return response.data;
   }
 
-  async sendMessage(itemId: number, receiverId: number, content: string): Promise<Message> {
-    const response = await this.axiosInstance.post<Message>('/messages', {
-      item_id: itemId,
+  async sendMessage(
+    itemId: number | null | undefined,
+    receiverId: number,
+    content: string,
+    attachment?: MessageAttachment
+  ): Promise<Message> {
+    const payload: {
+      receiver_id: number;
+      content: string;
+      item_id?: number;
+      attachment_url?: string;
+      attachment_name?: string;
+      attachment_mime?: string;
+      attachment_size?: number;
+      attachment_kind?: string;
+    } = {
       receiver_id: receiverId,
       content,
-    });
+    };
+    if (itemId && itemId > 0) {
+      payload.item_id = itemId;
+    }
+    if (attachment) {
+      payload.attachment_url = attachment.url;
+      payload.attachment_name = attachment.name;
+      payload.attachment_mime = attachment.mime;
+      payload.attachment_size = attachment.size;
+      payload.attachment_kind = attachment.kind;
+    }
+    const response = await this.axiosInstance.post<Message>('/messages', payload);
     return response.data;
+  }
+
+  /** Envia foto ou arquivo leve (≤5MB) para anexar a uma mensagem. */
+  async uploadMessageAttachment(file: File): Promise<MessageAttachment> {
+    return this.uploadFile('/messages/attachment', file);
   }
 
   async getConversations(): Promise<Conversation[]> {
     const response = await this.axiosInstance.get<Conversation[]>('/messages');
     return response.data;
   }
+
+  async markMessagesAsRead(itemId: number, otherUserId?: number): Promise<void> {
+    const params = otherUserId ? { other_user_id: otherUserId } : undefined;
+    await this.axiosInstance.put(`/messages/item/${itemId}/read`, null, { params });
+  }
+}
+
+export type AttachmentKind = 'image' | 'file';
+
+export interface MessageAttachment {
+  url: string;
+  name: string;
+  mime: string;
+  size: number;
+  kind: AttachmentKind;
 }
 
 export interface Message {
   id: number;
   sender_id: number;
   receiver_id: number;
-  item_id: number;
+  item_id?: number | null;
   content: string;
   is_read: boolean;
   created_at: string;
-  sender?: User; // Assuming User interface is defined elsewhere or will be.
-  receiver?: User; // Assuming User interface is defined elsewhere or will be.
+  sender_name?: string;
+  sender_avatar_url?: string;
+  sender?: User;
+  receiver?: User;
+  attachment_url?: string;
+  attachment_name?: string;
+  attachment_mime?: string;
+  attachment_size?: number;
+  attachment_kind?: AttachmentKind;
 }
 
 export interface Conversation {
-  item_id: number;
+  item_id?: number | null;
   item_title: string;
   item_image_url: string;
   other_user_id: number;
   other_user_name: string;
+  other_user_avatar_url?: string;
   last_message: string;
   last_message_at: string;
+  unread_count?: number;
 }
 
 // Resolve URLs de imagem retornadas pelo backend para URLs acessíveis no navegador.
@@ -370,6 +603,164 @@ if (typeof window !== 'undefined') {
   if (token) {
     apiService.setAuthToken(token);
   }
+}
+
+
+export async function fetchMyProfile(): Promise<MyProfileResponse> {
+  return apiService.get<MyProfileResponse>('/profile');
+}
+
+export async function updateMyProfile(data: Partial<{
+  name: string;
+  bio: string;
+  phone: string;
+  city: string;
+  state: string;
+  city_id: number | null;
+  state_id: number | null;
+  website: string;
+  is_public: boolean;
+}>): Promise<MyProfileResponse> {
+  return apiService.put<MyProfileResponse>('/profile', data);
+}
+
+export async function uploadAvatar(file: File): Promise<{ avatar_url: string; profile: UserProfile }> {
+  return apiService.uploadFile('/profile/avatar', file);
+}
+
+export async function uploadBanner(file: File): Promise<{ banner_url: string; profile: UserProfile }> {
+  return apiService.uploadFile('/profile/banner', file);
+}
+
+export async function fetchPublicProfile(userId: number): Promise<PublicUserProfile> {
+  return apiService.get<PublicUserProfile>(`/users/${userId}`);
+}
+
+export async function fetchUserListings(
+  userId: number,
+  opts?: { status?: string; q?: string }
+): Promise<Item[]> {
+  const params = new URLSearchParams();
+  if (opts?.status) params.set('status', opts.status);
+  if (opts?.q) params.set('q', opts.q);
+  const qs = params.toString();
+  return apiService.get<Item[]>(`/users/${userId}/items${qs ? `?${qs}` : ''}`);
+}
+
+export async function fetchUserReviews(userId: number): Promise<Review[]> {
+  return apiService.get<Review[]>(`/users/${userId}/reviews`);
+}
+
+export async function createReview(payload: ReviewRequest): Promise<Review> {
+  return apiService.post<Review>('/reviews', payload);
+}
+
+export async function updateReview(
+  reviewId: number,
+  payload: { rating: number; comment?: string }
+): Promise<Review> {
+  return apiService.put<Review>(`/reviews/${reviewId}`, payload);
+}
+
+export async function deleteReview(reviewId: number): Promise<{ deleted: boolean }> {
+  return apiService.delete(`/reviews/${reviewId}`);
+}
+
+export async function fetchUserFavorites(userId: number): Promise<Item[]> {
+  return apiService.get<Item[]>(`/users/${userId}/favorites`);
+}
+
+export async function favoriteItem(itemId: number): Promise<{ favorited: boolean; favorites_count: number }> {
+  return apiService.post(`/items/${itemId}/favorite`);
+}
+
+export async function unfavoriteItem(itemId: number): Promise<{ favorited: boolean; favorites_count: number }> {
+  return apiService.delete(`/items/${itemId}/favorite`);
+}
+
+export async function registerItemView(itemId: number): Promise<{ viewed: boolean; views_count: number }> {
+  return apiService.post(`/items/${itemId}/view`);
+}
+
+export async function fetchItemComments(itemId: number): Promise<ItemComment[]> {
+  return apiService.get<ItemComment[]>(`/items/${itemId}/comments`);
+}
+
+export async function createItemComment(itemId: number, content: string): Promise<ItemComment> {
+  return apiService.post<ItemComment>(`/items/${itemId}/comments`, { content });
+}
+
+export async function deleteItemComment(
+  itemId: number,
+  commentId: number
+): Promise<{ deleted: boolean }> {
+  return apiService.delete(`/items/${itemId}/comments/${commentId}`);
+}
+
+export async function fetchFollowers(userId: number): Promise<FollowUser[]> {
+  return apiService.get<FollowUser[]>(`/users/${userId}/followers`);
+}
+
+export async function fetchFollowing(userId: number): Promise<FollowUser[]> {
+  return apiService.get<FollowUser[]>(`/users/${userId}/following`);
+}
+
+export async function followUser(userId: number): Promise<{ following: boolean }> {
+  return apiService.post(`/users/${userId}/follow`);
+}
+
+export async function unfollowUser(userId: number): Promise<{ following: boolean }> {
+  return apiService.delete(`/users/${userId}/follow`);
+}
+
+export interface ItemStatusSurvey {
+  channel?: 'platform' | 'off_platform' | 'not_sold';
+  final_price?: number | null;
+  comment?: string;
+}
+
+export async function updateItemStatus(
+  itemId: number,
+  status: string,
+  survey?: ItemStatusSurvey
+): Promise<Item> {
+  return apiService.put<Item>(`/items/${itemId}/status`, { status, ...survey });
+}
+
+export async function duplicateItem(itemId: number): Promise<Item> {
+  return apiService.post<Item>(`/items/${itemId}/duplicate`);
+}
+
+export interface Boost {
+  id: number;
+  item_id: number;
+  user_id: number;
+  status: string;
+  notes?: string;
+  requested_at: string;
+  activated_at?: string | null;
+  expires_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function requestBoost(itemId: number): Promise<Boost> {
+  return apiService.post<Boost>(`/items/${itemId}/boost`);
+}
+
+export async function fetchStates(): Promise<StateOption[]> {
+  return apiService.get<StateOption[]>('/states');
+}
+
+export async function fetchCities(stateId: number, q?: string): Promise<CityOption[]> {
+  const params = new URLSearchParams({ state_id: String(stateId) });
+  if (q) params.set('q', q);
+  return apiService.get<CityOption[]>(`/cities?${params.toString()}`);
+}
+
+export async function fetchCategories(listingType?: string): Promise<ApiCategory[]> {
+  const qs = listingType ? `?listing_type=${encodeURIComponent(listingType)}` : '';
+  return apiService.get<ApiCategory[]>(`/categories${qs}`);
 }
 
 export default apiService;

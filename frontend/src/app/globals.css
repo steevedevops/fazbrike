@@ -1,33 +1,108 @@
 @import "tailwindcss";
 
 :root {
-  /* Cores da plataforma Fazbrike */
-  --color-primary: #0A2B42;        /* Azul-Cobalto - Cabeçalho, texto principal */
-  --color-secondary: #B589D6;       /* Púrpura/Lavanda - Destaques, ícones */
-  --color-accent: #F18F01;          /* Laranja Suave - Botões de ação */
-  --color-background: #FFFFFF;      /* Branco Puro - Fundo e espaços */
-  
-  /* Cores neutras */
-  --color-neutral-50: #f8fafc;
-  --color-neutral-100: #f1f5f9;
-  --color-neutral-200: #e2e8f0;
-  --color-neutral-300: #cbd5e1;
-  --color-neutral-400: #94a3b8;
-  --color-neutral-500: #64748b;
-  --color-neutral-600: #475569;
-  --color-neutral-700: #334155;
-  --color-neutral-800: #1e293b;
-  --color-neutral-900: #0f172a;
-  
-  /* Sombras personalizadas */
-  --shadow-primary: 0 4px 14px 0 rgba(10, 43, 66, 0.1);
-  --shadow-secondary: 0 4px 14px 0 rgba(181, 137, 214, 0.1);
-  --shadow-accent: 0 4px 14px 0 rgba(241, 143, 1, 0.1);
+  /* Fazbrike Design System v1 — terracota / carvão / creme */
+  --color-brand-50: #F8E8DE;
+  --color-brand-500: #C45C26;
+  --color-brand-600: #A3481C;
+  --color-ink: #1C1917;
+  --color-muted: #78716C;
+  --color-canvas: #FAF8F5;
+  --color-surface: #FFFFFF;
+  --color-subtle: #F3EFE8;
+  --color-border: #E7E0D6;
+  --color-sage: #6B8F71;
+  --color-success: #3F7D4E;
+  --color-danger: #B42318;
+
+  /* Aliases legados (apontam para a marca nova) */
+  --color-primary: var(--color-ink);
+  --color-secondary: var(--color-sage);
+  --color-accent: var(--color-brand-500);
+  --color-background: var(--color-canvas);
+
+  --color-neutral-50: #FAF8F5;
+  --color-neutral-100: #F3EFE8;
+  --color-neutral-200: #E7E0D6;
+  --color-neutral-300: #D6CEC2;
+  --color-neutral-400: #A8A29E;
+  --color-neutral-500: #78716C;
+  --color-neutral-600: #57534E;
+  --color-neutral-700: #44403C;
+  --color-neutral-800: #292524;
+  --color-neutral-900: #1C1917;
+
+  --shadow-soft: 0 8px 24px 0 rgba(28, 25, 23, 0.08);
+  --shadow-card: 0 4px 16px 0 rgba(28, 25, 23, 0.06);
+  --shadow-primary: var(--shadow-soft);
+  --shadow-secondary: var(--shadow-card);
+  --shadow-accent: 0 4px 14px 0 rgba(196, 92, 38, 0.18);
+
+  --radius-chip: 11px;
+  --radius-control: 12px;
+  --radius-card: 12px;
+  --radius-pill: 9999px;
+
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 16px;
+  --font-size-2xl: 17px;
+  --font-size-3xl: 18px;
+  --font-size-4xl: 34px;
+  --line-height-base: 24px;
+
+  --space-1: 2px;
+  --space-2: 6px;
+  --space-3: 7px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 13px;
+  --space-7: 16px;
+  --space-8: 20px;
+  --layout-header: 64px;
+  --layout-gutter: 16px;
+  --layout-max: 90rem;
+
+  --motion-instant: 150ms;
+  --motion-fast: 200ms;
 }
 
-/* Variáveis CSS customizadas para Tailwind */
+@theme {
+  --color-brand-50: #F8E8DE;
+  --color-brand-100: #F8E8DE;
+  --color-brand-500: #C45C26;
+  --color-brand-600: #A3481C;
+  --color-ink: #1C1917;
+  --color-muted: #78716C;
+  --color-canvas: #FAF8F5;
+  --color-surface: #FFFFFF;
+  --color-subtle: #F3EFE8;
+  --color-border-token: #E7E0D6;
+  --color-sage: #6B8F71;
+  --color-success: #3F7D4E;
+  --color-danger: #B42318;
 
-/* Reset e estilos base */
+  --color-primary-50: #F8E8DE;
+  --color-primary-500: #C45C26;
+  --color-primary-600: #A3481C;
+  --color-accent-500: #C45C26;
+  --color-accent-600: #A3481C;
+  --color-secondary-500: #6B8F71;
+  --color-secondary-600: #55765C;
+
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --radius-chip: 11px;
+  --radius-control: 12px;
+  --radius-card: 12px;
+  --radius-pill: 9999px;
+  --shadow-soft: 0 8px 24px 0 rgba(28, 25, 23, 0.08);
+  --shadow-card: 0 4px 16px 0 rgba(28, 25, 23, 0.06);
+  --motion-instant: 150ms;
+  --motion-fast: 200ms;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -37,40 +112,76 @@ html {
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-primary);
-  font-family: 'Inter', system-ui, sans-serif;
-  line-height: 1.6;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xl);
+  font-weight: 500;
+  line-height: var(--line-height-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Estilos para elementos de foco */
-*:focus {
+:focus {
   outline: none;
 }
 
-/* Estilos para links */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
 a {
   text-decoration: none;
-  transition: color 0.2s ease;
 }
 
-a:hover {
-  text-decoration: underline;
+.type-display {
+  font-size: var(--font-size-4xl);
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
-/* Estilos para botões */
-button {
+.type-title {
+  font-size: var(--font-size-3xl);
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.type-body {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-base);
+  font-weight: 500;
+}
+
+.type-meta {
+  font-size: var(--font-size-sm);
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -40px;
+  z-index: 60;
+  padding: 8px 12px;
+  background: var(--color-ink);
+  color: #ffffff;
+  border-radius: var(--radius-control);
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+button,
+input,
+textarea,
+select {
   font-family: inherit;
 }
 
-/* Estilos para inputs */
-input, textarea, select {
-  font-family: inherit;
-}
-
-/* Scrollbar personalizada */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -88,26 +199,66 @@ input, textarea, select {
   background: var(--color-neutral-400);
 }
 
-/* Animações personalizadas */
 @keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.25s ease-out both;
 }
 
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out;
+.animate-slide-down {
+  animation: slideDown 0.22s ease-out both;
 }
 
-/* Slider styles */
+.animate-panel-in {
+  animation: panelIn 0.22s ease-out both;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.stagger-children > * {
+  animation: fadeInUp 0.35s ease-out both;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 280ms; }
+.stagger-children > *:nth-child(n+9) { animation-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .slider {
   -webkit-appearance: none;
   appearance: none;
@@ -116,7 +267,7 @@ input, textarea, select {
 }
 
 .slider::-webkit-slider-track {
-  background: #e5e7eb;
+  background: var(--color-border);
   height: 8px;
   border-radius: 4px;
 }
@@ -124,7 +275,7 @@ input, textarea, select {
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  background: #3b82f6;
+  background: var(--color-brand-500);
   height: 20px;
   width: 20px;
   border-radius: 50%;
@@ -134,18 +285,18 @@ input, textarea, select {
 }
 
 .slider::-webkit-slider-thumb:hover {
-  background: #2563eb;
+  background: var(--color-brand-600);
 }
 
 .slider::-moz-range-track {
-  background: #e5e7eb;
+  background: var(--color-border);
   height: 8px;
   border-radius: 4px;
   border: none;
 }
 
 .slider::-moz-range-thumb {
-  background: #3b82f6;
+  background: var(--color-brand-500);
   height: 20px;
   width: 20px;
   border-radius: 50%;
@@ -155,5 +306,5 @@ input, textarea, select {
 }
 
 .slider::-moz-range-thumb:hover {
-  background: #2563eb;
+  background: var(--color-brand-600);
 }

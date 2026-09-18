@@ -3,168 +3,232 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import type { ApiError } from '@/lib/services/api';
+import { PasswordInput } from '@/components/PasswordInput';
+import {
+  btnInkClass,
+  cx,
+  errorBannerClass,
+  fieldClass,
+  fieldErrorClass,
+  labelClass,
+} from '@/lib/ui-classes';
 
-interface RegisterFormProps {
-  onToggleMode: () => void;
+const EMAIL_RE = /^\S+@\S+\.\S+$/;
+
+type FieldErrors = {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirm?: string;
+};
+
+type Strength = { score: number; label: string; bar: string; text: string };
+
+const STRENGTHS: Strength[] = [
+  { score: 1, label: 'Fraca', bar: 'bg-danger', text: 'text-danger' },
+  { score: 2, label: 'Média', bar: 'bg-brand-500', text: 'text-brand-600' },
+  { score: 3, label: 'Forte', bar: 'bg-success', text: 'text-success' },
+];
+
+function getStrength(password: string): Strength | null {
+  if (!password) return null;
+
+  let score = 0;
+  if (password.length >= 6) score += 1;
+  if (password.length >= 10) score += 1;
+  if (/[A-Za-z]/.test(password) && /\d/.test(password)) score += 1;
+  score = Math.max(1, Math.min(3, score));
+
+  return STRENGTHS[score - 1];
 }
 
-export const RegisterForm: React.FC<RegisterFormProps> = ({ onToggleMode }) => {
+export const RegisterForm: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { register } = useAuth();
 
+  const strength = getStrength(password);
+  const confirmMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const confirmErrorText = fieldErrors.confirm ?? (confirmMismatch ? 'As senhas não coincidem.' : '');
+
+  const clearFieldError = (field: keyof FieldErrors) => {
+    if (fieldErrors[field]) {
+      setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem');
-      return;
-    }
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
 
-    if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+    const errors: FieldErrors = {};
+    if (trimmedName.length < 2) errors.name = 'Informe seu nome completo.';
+    if (!EMAIL_RE.test(trimmedEmail)) errors.email = 'Informe um email válido.';
+    if (password.length < 6) errors.password = 'A senha deve ter pelo menos 6 caracteres.';
+    if (confirmPassword.length === 0) errors.confirm = 'Confirme sua senha.';
+    else if (password !== confirmPassword) errors.confirm = 'As senhas não coincidem.';
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
     setLoading(true);
 
     try {
-      await register(name, email, password);
-      router.push('/');
+      await register(trimmedName, trimmedEmail, password);
+      router.push(`/verificar-email?email=${encodeURIComponent(trimmedEmail)}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError((err as ApiError)?.message || 'Não foi possível criar a conta.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-sm mx-auto animate-fade-in-up">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-serif font-semibold text-gray-900 tracking-tight">
-            Criar conta
-          </h2>
-          <p className="mt-2 text-sm text-gray-500">
-            Junte-se à nossa comunidade
-          </p>
+    <div id="panel-register" role="tabpanel" aria-labelledby="tab-register" className="animate-fade-in">
+      <p className="type-body text-muted mb-6">Junte-se à comunidade Fazbrike.</p>
+
+      {error ? (
+        <div className={errorBannerClass} role="alert">
+          {error}
+        </div>
+      ) : null}
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div>
+          <label htmlFor="name" className={labelClass}>
+            Nome completo
+          </label>
+          <input
+            type="text"
+            id="name"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              clearFieldError('name');
+            }}
+            required
+            autoComplete="name"
+            className={cx(fieldClass, fieldErrors.name && fieldErrorClass)}
+            placeholder="Seu nome completo"
+            aria-invalid={!!fieldErrors.name || undefined}
+            aria-describedby={fieldErrors.name ? 'register-name-error' : undefined}
+          />
+          {fieldErrors.name ? (
+            <p id="register-name-error" className="type-meta text-danger mt-1.5">
+              {fieldErrors.name}
+            </p>
+          ) : null}
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
-            {error}
-          </div>
-        )}
+        <div>
+          <label htmlFor="email" className={labelClass}>
+            Email
+          </label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (EMAIL_RE.test(e.target.value.trim())) clearFieldError('email');
+            }}
+            required
+            autoComplete="email"
+            className={cx(fieldClass, fieldErrors.email && fieldErrorClass)}
+            placeholder="seu@email.com"
+            aria-invalid={!!fieldErrors.email || undefined}
+            aria-describedby={fieldErrors.email ? 'register-email-error' : undefined}
+          />
+          {fieldErrors.email ? (
+            <p id="register-email-error" className="type-meta text-danger mt-1.5">
+              {fieldErrors.email}
+            </p>
+          ) : null}
+        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name Input */}
-          <div className="space-y-1.5">
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-              Nome completo
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoComplete="name"
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-colors"
-              placeholder="Seu nome completo"
-            />
-          </div>
+        <div>
+          <label htmlFor="password" className={labelClass}>
+            Senha
+          </label>
+          <PasswordInput
+            id="password"
+            value={password}
+            onChange={(value) => {
+              setPassword(value);
+              if (fieldErrors.password && value.length >= 6) clearFieldError('password');
+            }}
+            autoComplete="new-password"
+            placeholder="Mínimo 6 caracteres"
+            invalid={!!fieldErrors.password}
+            ariaDescribedBy={
+              fieldErrors.password ? 'register-password-error' : strength ? 'register-password-strength' : undefined
+            }
+          />
+          {strength ? (
+            <div className="mt-2">
+              <div className="flex gap-1.5" aria-hidden>
+                {[1, 2, 3].map((bar) => (
+                  <span
+                    key={bar}
+                    className={cx('h-1 flex-1 rounded-full', bar <= strength.score ? strength.bar : 'bg-subtle')}
+                  />
+                ))}
+              </div>
+              <p id="register-password-strength" className="type-meta mt-1.5">
+                <span className={strength.text}>Força da senha: {strength.label}</span>
+              </p>
+            </div>
+          ) : null}
+          {fieldErrors.password ? (
+            <p id="register-password-error" className="type-meta text-danger mt-1.5">
+              {fieldErrors.password}
+            </p>
+          ) : null}
+        </div>
 
-          {/* Email Input */}
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-colors"
-              placeholder="seu@email.com"
-            />
-          </div>
+        <div>
+          <label htmlFor="confirmPassword" className={labelClass}>
+            Confirmar senha
+          </label>
+          <PasswordInput
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={(value) => {
+              setConfirmPassword(value);
+              if (fieldErrors.confirm && value === password) clearFieldError('confirm');
+            }}
+            autoComplete="new-password"
+            placeholder="Confirme sua senha"
+            invalid={!!confirmErrorText}
+            ariaDescribedBy={confirmErrorText ? 'register-confirm-error' : undefined}
+          />
+          {confirmErrorText ? (
+            <p id="register-confirm-error" className="type-meta text-danger mt-1.5">
+              {confirmErrorText}
+            </p>
+          ) : null}
+        </div>
 
-          {/* Password Input */}
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Senha
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-colors"
-              placeholder="Mínimo 6 caracteres"
-            />
-          </div>
+        <button type="submit" disabled={loading} className={`${btnInkClass} w-full`}>
+          {loading ? 'Criando conta...' : 'Criar conta'}
+        </button>
+      </form>
 
-          {/* Confirm Password Input */}
-          <div className="space-y-1.5">
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-              Confirmar senha
-            </label>
-            <input
-              type="password"
-              id="confirmPassword"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              autoComplete="new-password"
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition-colors"
-              placeholder="Confirme sua senha"
-            />
-          </div>
-
-          {/* Register Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gray-900 text-white py-3 rounded-lg text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors mt-2"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Criando conta...
-              </span>
-            ) : (
-              'Criar conta'
-            )}
-          </button>
-        </form>
-
-        {/* Login Link */}
-        <p className="mt-8 text-center text-sm text-gray-500">
-          Já tem uma conta?{' '}
-          <button
-            onClick={onToggleMode}
-            className="font-medium text-gray-900 hover:underline"
-          >
-            Faça login
-          </button>
-        </p>
-      </div>
+      <p className="type-meta text-muted mt-5">
+        Ao criar uma conta você concorda com os termos de uso e a política de privacidade.
+      </p>
     </div>
   );
 };

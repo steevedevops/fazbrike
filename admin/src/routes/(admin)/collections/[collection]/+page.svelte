@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import { api, ApiError } from '$lib/api';
-	import { collections } from '$lib/meta';
+	import { collections, collectionsLoading } from '$lib/meta';
 	import { toast } from '$lib/toast';
 	import type { CollectionMeta, ListResponse } from '$lib/types';
 	import TopBar from '$lib/components/TopBar.svelte';
@@ -16,7 +16,7 @@
 
 	let records = $state<Record<string, unknown>[]>([]);
 	let result = $state<ListResponse>({ data: [], total: 0, page: 1, perPage: 20, totalPages: 0 });
-	let loading = $state(true);
+	let loading = $state(false);
 	let search = $state('');
 	let sort = $state<{ field: string; desc: boolean } | null>(null);
 	let deleteTarget = $state<number | null>(null);
@@ -27,13 +27,18 @@
 	}
 
 	async function load() {
-		if (!collection) return;
+		const col = untrack(() => collection);
+		if (!col) return;
 		loading = true;
 		try {
-			const params: Record<string, string | number> = { page: result.page, perPage: result.perPage };
-			if (search.trim()) params.search = search.trim();
-			if (sort) params.sort = `${sort.field}:${sort.desc ? 'desc' : 'asc'}`;
-			result = await api.list(collection.name, params);
+			const pageNum = untrack(() => result.page);
+			const perPage = untrack(() => result.perPage);
+			const q = untrack(() => search.trim());
+			const s = untrack(() => sort);
+			const params: Record<string, string | number> = { page: pageNum, perPage };
+			if (q) params.search = q;
+			if (s) params.sort = `${s.field}:${s.desc ? 'desc' : 'asc'}`;
+			result = await api.list(col.name, params);
 			records = result.data;
 		} catch (e) {
 			toast('error', 'Erro ao carregar registros.');
@@ -43,12 +48,16 @@
 		}
 	}
 
-	let first = true;
+	// Recarrega ao trocar de coleção no menu lateral (sem loop reativo).
 	$effect(() => {
-		if (collection) {
-			if (!first) load();
-			first = false;
-		}
+		const key = collection?.name;
+		if (!key) return;
+		untrack(() => {
+			result = { data: [], total: 0, page: 1, perPage: result.perPage || 20, totalPages: 0 };
+			search = '';
+			sort = null;
+			void load();
+		});
 	});
 
 	let searchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -117,23 +126,20 @@
 		}
 	}
 
-	onMount(() => {
-		load();
-	});
 </script>
 
-{#if !collection}
+{#if !collection && $collectionsLoading}
+	<div class="spin-wrap"><div class="spinner"></div></div>
+{:else if !collection}
 	<div class="nope">
-		<h1>Coleção não encontrada</h1>
-		<p>A coleção <code>{name}</code> não existe.</p>
-		<a href="/">← Voltar para a visão geral</a>
+		<h1 class="page-title">Coleção não encontrada</h1>
+		<p class="page-sub">A coleção <code>{name}</code> não existe.</p>
+		<a class="back" href="/">← Voltar</a>
 	</div>
 {:else}
 	<TopBar {collection} onSearch={onSearch} searchPlaceholder={`Pesquisar ${collection.label.toLowerCase()}…`}>
 		{#snippet actions()}
-			<button class="new-btn" onclick={goNew}>
-				<span class="plus">+</span> Novo registro
-			</button>
+			<button class="btn primary" type="button" onclick={goNew}>+ Novo</button>
 		{/snippet}
 	</TopBar>
 
@@ -155,6 +161,7 @@
 						<button
 							class="ra role"
 							class:admin={r.role === 'admin'}
+							type="button"
 							onclick={() => toggleRole(r)}
 							title={r.role === 'admin' ? 'Rebaixar para usuário' : 'Tornar administrador'}
 						>
@@ -178,73 +185,47 @@
 
 <style>
 	.nope {
-		padding: 40px;
+		padding: 24px 0;
 	}
-	.nope h1 {
-		font-size: 22px;
-		margin-bottom: 8px;
-	}
-	.nope p {
-		color: var(--text-muted);
-		margin-bottom: 16px;
-	}
-	.nope a {
-		color: var(--accent-strong);
-		font-weight: 600;
-	}
-	.new-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		background: var(--accent-strong);
-		color: #fff;
-		border: none;
-		border-radius: var(--radius-sm);
-		padding: 8px 14px;
+	.back {
+		display: inline-block;
+		margin-top: 16px;
+		color: var(--accent);
 		font-weight: 600;
 		font-size: 13px;
 	}
-	.new-btn:hover {
-		background: #1d9c6e;
-	}
-	.ra.role {
-		color: var(--accent-strong);
-		border-color: transparent;
-	}
-	.ra.role:hover {
-		background: var(--accent-soft);
-		border-color: var(--accent);
-	}
-	.ra.role.admin {
-		color: #b45309;
-	}
-	.ra.role.admin:hover {
-		background: rgba(245, 158, 11, 0.12);
-		border-color: #f59e0b;
-	}
-	.plus {
-		font-size: 16px;
-		line-height: 1;
+	code {
+		background: var(--subtle);
+		padding: 1px 6px;
+		border-radius: 4px;
+		font-size: 12px;
 	}
 	.list-body {
-		margin-top: 16px;
+		margin-top: 20px;
 	}
 	.spin-wrap {
 		display: grid;
 		place-items: center;
-		padding: 60px;
+		padding: 64px;
 	}
-	.spinner {
-		width: 30px;
-		height: 30px;
-		border: 3px solid var(--border);
-		border-top-color: var(--accent-strong);
-		border-radius: 50%;
-		animation: rot 0.8s linear infinite;
+	.ra.role {
+		border: 1px solid transparent;
+		border-radius: var(--radius-xs);
+		padding: 5px 10px;
+		font-size: 12px;
+		font-weight: 600;
+		margin-left: 2px;
+		background: transparent;
+		color: var(--muted);
 	}
-	@keyframes rot {
-		to {
-			transform: rotate(360deg);
-		}
+	.ra.role:hover {
+		background: var(--subtle);
+		color: var(--ink);
+	}
+	.ra.role.admin {
+		color: var(--warn);
+	}
+	.ra.role.admin:hover {
+		background: var(--warn-soft);
 	}
 </style>

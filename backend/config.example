@@ -1,5 +1,13 @@
 PORT=8080
-JWT_SECRET=fazbrike-secret-key
-DB_PATH=fazbrike.db
+# Gere um valor único (mín. 32 chars). Em GIN_MODE=release o default fraco é rejeitado.
+JWT_SECRET=dev-local-fazbrike-change-me-32chars-min
+DB_HOST=127.0.0.1
+DB_PORT=5437
+DB_USER=webmaster
+DB_PASSWORD=pgsql.dev
+DB_NAME=fazbrike
+DB_SSLMODE=disable
+# Origens CORS permitidas (separadas por vírgula). Vazio = localhost frontend/admin.
+ALLOWED_ORIGINS=http://localhost:3003,http://127.0.0.1:3003,http://localhost:5174,http://127.0.0.1:5174
 # Emails que são promovidos a admin no boot (separados por vírgula)
 ADMIN_EMAILS=

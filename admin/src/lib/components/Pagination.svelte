@@ -13,8 +13,8 @@
 		const total = Math.max(result.totalPages, 1);
 		const cur = current;
 		const out: number[] = [];
-		const from = Math.max(1, cur - 4);
-		const to = Math.min(total, cur + 4);
+		const from = Math.max(1, cur - 2);
+		const to = Math.min(total, cur + 2);
 		for (let i = from; i <= to; i++) out.push(i);
 		return out;
 	});
@@ -22,7 +22,9 @@
 
 <footer class="pagination">
 	<div class="info">
-		Página {current} de {Math.max(result.totalPages, 1)} · {result.total} registro(s)
+		{result.total.toLocaleString('pt-BR')} registro{result.total === 1 ? '' : 's'}
+		<span class="dot">·</span>
+		página {current} de {Math.max(result.totalPages, 1)}
 	</div>
 	<div class="controls">
 		<select
@@ -31,19 +33,25 @@
 			aria-label="Registros por página"
 		>
 			{#each [10, 20, 30, 50, 100] as n}
-				<option value={n} selected={result.perPage === n}>{n} / página</option>
+				<option value={n} selected={result.perPage === n}>{n} / pág.</option>
 			{/each}
 		</select>
 
-		<button class="page" disabled={result.page <= 1} onclick={() => onPage(result.page - 1)}>
+		<button class="page" type="button" disabled={result.page <= 1} onclick={() => onPage(result.page - 1)} aria-label="Anterior">
 			‹
 		</button>
 		{#each pages as p (p)}
-			<button class="page" class:active={p === current} onclick={() => onPage(p)}>
+			<button class="page" type="button" class:active={p === current} onclick={() => onPage(p)}>
 				{p}
 			</button>
 		{/each}
-		<button class="page" disabled={result.page >= result.totalPages} onclick={() => onPage(result.page + 1)}>
+		<button
+			class="page"
+			type="button"
+			disabled={result.page >= result.totalPages}
+			onclick={() => onPage(result.page + 1)}
+			aria-label="Próxima"
+		>
 			›
 		</button>
 	</div>
@@ -55,56 +63,56 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
-		padding: 14px 4px 4px;
+		padding: 16px 2px 0;
 		font-size: 13px;
-		color: var(--text-muted);
+		color: var(--muted);
 		flex-wrap: wrap;
 	}
-	.info {
-		font-size: 13px;
+	.dot {
+		margin: 0 4px;
+		color: var(--border-strong);
 	}
 	.controls {
 		display: flex;
 		align-items: center;
-		gap: 6px;
+		gap: 4px;
 	}
 	select {
-		padding: 6px 28px 6px 12px;
-		min-width: 140px;
+		padding: 6px 10px;
+		min-width: 100px;
 		cursor: pointer;
-		border: 1px solid var(--border-strong);
+		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
-		background: #fff;
-		font-size: 13px;
+		background: var(--surface);
+		font-size: 12.5px;
 		outline: none;
-		transition: border-color 0.15s;
+		margin-right: 6px;
 	}
 	select:focus {
-		border-color: var(--accent-strong);
+		border-color: var(--accent);
 	}
 	.page {
-		width: 32px;
+		min-width: 32px;
 		height: 32px;
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-sm);
-		background: #fff;
-		color: var(--text);
+		padding: 0 8px;
+		border: 1px solid transparent;
+		border-radius: var(--radius-xs);
+		background: transparent;
+		color: var(--muted);
 		font-size: 13px;
 		font-weight: 500;
 		transition: all 0.12s;
 	}
-	.page:hover:not(:disabled) {
-		border-color: var(--accent-strong);
-		color: var(--accent-strong);
+	.page:hover:not(:disabled):not(.active) {
+		background: var(--subtle);
+		color: var(--ink);
 	}
 	.page.active {
-		background: var(--accent-strong);
-		border-color: var(--accent-strong);
+		background: var(--ink);
 		color: #fff;
-		box-shadow: 0 2px 6px rgba(31, 165, 115, 0.3);
 	}
 	.page:disabled {
-		opacity: 0.4;
+		opacity: 0.35;
 		cursor: default;
 	}
 </style>

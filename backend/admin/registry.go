@@ -21,17 +21,25 @@ const (
 
 // FieldMeta descreve um único campo de uma collection.
 type FieldMeta struct {
-	Key          string    `json:"key"`
-	Label        string    `json:"label"`
-	Kind         FieldKind `json:"kind"`
-	Required     bool      `json:"required"`
-	Unique       bool      `json:"unique"`
-	Immutable    bool      `json:"immutable"` // ex.: ID, timestamps — não editáveis
-	CreatedAuto  bool      `json:"-"`         // gerado automaticamente no create
-	HiddenInList bool      `json:"hidden_in_list"`
-	HiddenInForm bool      `json:"hidden_in_form"`
-	Editable     bool      `json:"editable"`
-	Sortable     bool      `json:"sortable"`
+	Key          string        `json:"key"`
+	Label        string        `json:"label"`
+	Kind         FieldKind     `json:"kind"`
+	Required     bool          `json:"required"`
+	Unique       bool          `json:"unique"`
+	Immutable    bool          `json:"immutable"` // ex.: ID, timestamps — não editáveis
+	CreatedAuto  bool          `json:"-"`         // gerado automaticamente no create
+	HiddenInList bool          `json:"hidden_in_list"`
+	HiddenInForm bool          `json:"hidden_in_form"`
+	Editable     bool          `json:"editable"`
+	Sortable     bool          `json:"sortable"`
+	Relation     *RelationMeta `json:"relation,omitempty"` // presente quando o campo é uma FK ("*_id")
+}
+
+// RelationMeta descreve para qual collection uma FK aponta e qual campo dela
+// usar como rótulo amigável (ex.: user_id -> collection "user", campo "name").
+type RelationMeta struct {
+	Collection string `json:"collection"`
+	LabelField string `json:"label_field"`
 }
 
 // CollectionMeta descreve uma collection inteira (o "model" no admin).
@@ -113,8 +121,15 @@ func Register(model interface{}) error {
 			Sortable: true,
 		}
 
-		// Inferência do tipo.
-		switch f.Type.Kind() {
+		// Inferência do tipo. Ponteiros (campos nullable, ex.: *int64, *time.Time)
+		// são desreferenciados antes de olhar o Kind — sem isso, todo campo
+		// nullable caía no default e era tratado como relação embutida oculta,
+		// mesmo sendo um número ou timestamp comum.
+		ft := f.Type
+		if ft.Kind() == reflect.Ptr {
+			ft = ft.Elem()
+		}
+		switch ft.Kind() {
 		case reflect.String:
 			fm.Kind = KindText
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -125,7 +140,7 @@ func Register(model interface{}) error {
 			fm.Kind = KindBool
 		case reflect.Slice:
 			// byte slice (= imagem armazenada) — ocultamos da listagem.
-			if f.Type.Elem().Kind() == reflect.Uint8 {
+			if ft.Elem().Kind() == reflect.Uint8 {
 				fm.Kind = KindText
 				fm.Editable = false
 				fm.HiddenInList = true
@@ -134,8 +149,8 @@ func Register(model interface{}) error {
 				continue
 			}
 		default:
-			// time.Time ou tipos não-primitivos: tratamos de forma conservadora.
-			if f.Type == reflect.TypeOf(time.Time{}) {
+			// time.Time (ou *time.Time) ou tipos não-primitivos: tratamos de forma conservadora.
+			if ft == reflect.TypeOf(time.Time{}) {
 				fm.Kind = KindTime
 				fm.Immutable = true
 				fm.Editable = false
@@ -263,6 +278,103 @@ func SetCollectionLabel(name, label string) {
 			return
 		}
 	}
+}
+
+// ResolveRelations liga campos numéricos "*_id" às collections que eles
+// referenciam, para o admin exibir o nome do registro relacionado em vez do
+// ID cru e oferecer um seletor com busca. Precisa rodar uma única vez, depois
+// de todos os Register() (senão a collection alvo pode ainda não existir no
+// registro).
+func ResolveRelations() {
+	for _, r := range registry {
+		for i := range r.Meta.Fields {
+			fm := &r.Meta.Fields[i]
+			if fm.Kind != KindNumber || !strings.HasSuffix(fm.Key, "_id") {
+				continue
+			}
+			targetName := relationTargetFromStruct(r.ModelType, fm.Key)
+			if targetName == "" {
+				targetName = strings.TrimSuffix(fm.Key, "_id")
+			}
+			target := FindCollection(targetName)
+			if target == nil {
+				continue
+			}
+			fm.Relation = &RelationMeta{Collection: targetName, LabelField: pickLabelField(target)}
+		}
+	}
+}
+
+// relationTargetFromStruct procura, no struct t, um campo de relação (struct
+// ou ponteiro para struct) cuja tag `gorm:"foreignKey:<Campo>"` aponte para o
+// campo Go que carrega a chave JSON idKey (ex.: "sender_id" -> campo Go
+// "SenderID" -> acha "Sender User `gorm:"foreignKey:SenderID"`" -> "user").
+// Retorna "" quando não há tal campo (ex.: FK sem struct de relação embutida).
+func relationTargetFromStruct(t reflect.Type, idKey string) string {
+	idField, ok := fieldIndex(t, idKey)
+	if !ok {
+		return ""
+	}
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if !gormTagHasForeignKey(f.Tag.Get("gorm"), idField.Name) {
+			continue
+		}
+		ft := f.Type
+		if ft.Kind() == reflect.Ptr {
+			ft = ft.Elem()
+		}
+		if ft.Kind() == reflect.Slice {
+			ft = ft.Elem()
+			if ft.Kind() == reflect.Ptr {
+				ft = ft.Elem()
+			}
+		}
+		if ft.Kind() == reflect.Struct && ft != reflect.TypeOf(time.Time{}) {
+			return snakeCase(ft.Name())
+		}
+	}
+	return ""
+}
+
+// gormTagHasForeignKey verifica se a tag gorm de um campo contém
+// `foreignKey:<name>` (a tag pode ter mais opções separadas por ";", e a
+// própria foreignKey pode listar múltiplas colunas separadas por ",").
+func gormTagHasForeignKey(cfg, name string) bool {
+	for _, part := range strings.Split(cfg, ";") {
+		part = strings.TrimSpace(part)
+		if !strings.HasPrefix(part, "foreignKey:") {
+			continue
+		}
+		for _, k := range strings.Split(strings.TrimPrefix(part, "foreignKey:"), ",") {
+			if strings.TrimSpace(k) == name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// pickLabelField escolhe o campo mais amigável de uma collection alvo para
+// representar seus registros num seletor de relação: nome > título > label >
+// email > primeiro campo de texto disponível > id (nunca falha).
+func pickLabelField(target *RegisteredCollection) string {
+	priority := []string{"name", "title", "label", "email"}
+	byKey := map[string]bool{}
+	for _, f := range target.Meta.Fields {
+		byKey[f.Key] = true
+	}
+	for _, p := range priority {
+		if byKey[p] {
+			return p
+		}
+	}
+	for _, f := range target.Meta.Fields {
+		if f.Kind == KindText && !f.Immutable {
+			return f.Key
+		}
+	}
+	return "id"
 }
 
 // snakeCase converte Name para snake_case (ex.: User -> user, MessageThread -> message_thread).

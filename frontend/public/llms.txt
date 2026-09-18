@@ -1,0 +1,19 @@
+# Fazbrike
+
+> Fazbrike é um marketplace brasileiro para publicar, pesquisar e negociar itens novos e usados (produtos, veículos e imóveis) entre pessoas físicas, por cidade/estado.
+
+## Estrutura do site
+
+- `/` — página inicial, com destaques e categorias.
+- `/buscar?...` — busca e filtros de anúncios ativos (categoria, preço, localização, condição).
+- `/produto/{id}` — página de um anúncio específico: título, descrição, preço, fotos, localização e dados do vendedor. Só anúncios com status "ativo" existem publicamente; um anúncio vendido ou pausado deixa de existir nessa URL (HTTP 404).
+- `/usuario/{id}` — perfil público de um vendedor (anúncios ativos, avaliações).
+- `/vender` — formulário para publicar um novo anúncio (requer conta).
+
+## Dados estruturados
+
+Cada página `/produto/{id}` inclui JSON-LD (schema.org `Product`/`Offer`) com preço, disponibilidade e categoria, além de tags Open Graph.
+
+## Mapa do site
+
+Veja `/sitemap.xml` para a lista completa e atualizada de anúncios ativos indexáveis.

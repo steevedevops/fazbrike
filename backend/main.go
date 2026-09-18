@@ -6,9 +6,11 @@ import (
 	"fazbrike-backend/handlers"
 	"fazbrike-backend/middleware"
 	"fazbrike-backend/models"
+	"fazbrike-backend/seed"
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -16,94 +18,177 @@ import (
 )
 
 func main() {
-	// Carregar variáveis de ambiente
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found")
 	}
 
-	// Conectar ao banco de dados
+	// Fail-closed checks for JWT (warn in dev, fatal in release)
+	_ = config.JWTSecret()
+
 	config.InitDB()
 	db := config.GetDB()
 
-	// Migrar modelos
-	if err := db.AutoMigrate(&models.User{}, &models.Item{}, &models.Message{}); err != nil {
+	if err := db.AutoMigrate(
+		&models.User{},
+		&models.UserProfile{},
+		&models.Category{},
+		&models.Item{},
+		&models.ItemImage{},
+		&models.Message{},
+		&models.Country{},
+		&models.State{},
+		&models.City{},
+		&models.Follow{},
+		&models.ItemFavorite{},
+		&models.ItemComment{},
+		&models.ItemView{},
+		&models.Review{},
+		&models.Configuration{},
+		&models.EmailVerificationCode{},
+		&models.ItemSaleFeedback{},
+		&models.Boost{},
+	); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
-	// Promover admins configurados no boot (env ADMIN_EMAILS)
+	if err := handlers.EnsureItemLocationIndexes(db); err != nil {
+		log.Fatal("Failed to ensure item location indexes:", err)
+	}
+
+	if err := handlers.BackfillItemImages(db); err != nil {
+		log.Fatal("Failed to backfill item images:", err)
+	}
+
+	if err := seed.EnsureLocationSchema(db); err != nil {
+		log.Fatal("Failed to ensure location schema:", err)
+	}
+
+	if err := seed.SeedCategories(db); err != nil {
+		log.Fatal("Failed to seed categories:", err)
+	}
+
+	if err := seed.SeedLocations(db); err != nil {
+		log.Fatal("Failed to seed locations:", err)
+	}
+
+	if err := seed.SeedConfigurations(db); err != nil {
+		log.Fatal("Failed to seed configurations:", err)
+	}
+
+	if err := backfillUserProfiles(db); err != nil {
+		log.Fatal("Failed to backfill user profiles:", err)
+	}
+
 	if err := bootstrapAdmins(db); err != nil {
 		log.Fatal("Failed to bootstrap admins:", err)
 	}
 
-	// Registro de collections do admin (estilo Django: cada model vira uma collection)
 	if err := initAdminRegistry(); err != nil {
 		log.Fatal("Failed to init admin registry:", err)
 	}
 
-	// Configurar Gin
 	r := gin.Default()
+	maxMultipart := config.UploadMaxBytes()
+	if attachMax := config.MessageAttachmentMaxBytes(); attachMax > maxMultipart {
+		maxMultipart = attachMax
+	}
+	if backupMax := config.BackupMaxBytes(); backupMax > maxMultipart {
+		maxMultipart = backupMax
+	}
+	r.MaxMultipartMemory = maxMultipart
+	r.Use(middleware.SecurityHeaders())
+	r.Use(middleware.CORSAllowlist())
 
-	// Middleware CORS
-	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	})
-
-	// Servir arquivos estáticos (imagens)
 	r.Static("/api/uploads", "./uploads")
 
-	// Rotas de autenticação
 	auth := r.Group("/api/auth")
 	{
-		auth.POST("/register", handlers.Register(db))
-		auth.POST("/login", handlers.Login(db))
+		auth.POST("/register", middleware.RateLimit(20, time.Minute), handlers.Register(db))
+		auth.POST("/login", middleware.RateLimit(30, time.Minute), handlers.Login(db))
+		auth.POST("/verify-code", middleware.RateLimit(20, time.Minute), handlers.VerifyEmailCode(db))
+		auth.POST("/resend-code", middleware.RateLimit(10, time.Minute), handlers.ResendEmailCode(db))
 		auth.GET("/me", middleware.AuthMiddleware(), handlers.GetProfile(db))
 	}
 
-	// Rotas de itens (Públicas)
+	users := r.Group("/api/users")
+	users.Use(middleware.OptionalAuthMiddleware())
+	{
+		users.GET("/:id", handlers.GetPublicProfile(db))
+		users.GET("/:id/items", handlers.GetUserListings(db))
+		users.GET("/:id/reviews", handlers.GetUserReviews(db))
+		users.GET("/:id/favorites", handlers.GetUserFavorites(db))
+		users.GET("/:id/followers", handlers.GetFollowers(db))
+		users.GET("/:id/following", handlers.GetFollowing(db))
+		users.POST("/:id/follow", middleware.AuthMiddleware(), handlers.FollowUser(db))
+		users.DELETE("/:id/follow", middleware.AuthMiddleware(), handlers.UnfollowUser(db))
+	}
+
+	me := r.Group("/api/profile")
+	me.Use(middleware.AuthMiddleware())
+	{
+		me.GET("", handlers.GetMyProfile(db))
+		me.PUT("", handlers.UpdateMyProfile(db))
+		me.POST("/avatar", handlers.UploadAvatar(db))
+		me.POST("/banner", handlers.UploadBanner(db))
+	}
+
+	r.GET("/api/categories", handlers.GetCategories(db))
+	r.GET("/api/states", handlers.GetStates(db))
+	r.GET("/api/cities", handlers.GetCities(db))
+
+	reviews := r.Group("/api/reviews")
+	reviews.Use(middleware.AuthMiddleware())
+	{
+		reviews.POST("", middleware.RateLimit(20, time.Minute), handlers.CreateReview(db))
+		reviews.PUT("/:id", middleware.RateLimit(20, time.Minute), handlers.UpdateReview(db))
+		reviews.DELETE("/:id", handlers.DeleteReview(db))
+	}
+
 	publicItems := r.Group("/api/items")
+	publicItems.Use(middleware.OptionalAuthMiddleware())
 	{
 		publicItems.GET("", handlers.GetItems(db))
 		publicItems.GET("/:id", handlers.GetItemDetails(db))
+		publicItems.GET("/:id/comments", handlers.GetItemComments(db))
 	}
 
-	// Rotas de itens (Protegidas)
 	protectedItems := r.Group("/api/items")
 	protectedItems.Use(middleware.AuthMiddleware())
 	{
 		protectedItems.POST("", handlers.CreateItem(db))
 		protectedItems.GET("/my", handlers.GetUserItems(db))
+		protectedItems.PUT("/:id", handlers.UpdateItem(db))
+		protectedItems.PUT("/:id/status", handlers.UpdateItemStatus(db))
 		protectedItems.POST("/:id/image", handlers.UploadItemImage(db))
+		protectedItems.POST("/:id/images", handlers.UploadItemImages(db))
+		protectedItems.DELETE("/:id/images/:imageId", handlers.DeleteItemImage(db))
+		protectedItems.POST("/:id/favorite", handlers.FavoriteItem(db))
+		protectedItems.DELETE("/:id/favorite", handlers.UnfavoriteItem(db))
+		protectedItems.POST("/:id/comments", middleware.RateLimit(20, time.Minute), handlers.CreateItemComment(db))
+		protectedItems.DELETE("/:id/comments/:commentId", handlers.DeleteItemComment(db))
+		protectedItems.POST("/:id/view", handlers.RegisterItemView(db))
+		protectedItems.POST("/:id/duplicate", handlers.DuplicateItem(db))
+		protectedItems.POST("/:id/boost", handlers.RequestBoost(db))
 		protectedItems.DELETE("/:id", handlers.DeleteItem(db))
 	}
 
-	// Rotas de mensagens (Protegidas)
 	messages := r.Group("/api/messages")
 	messages.Use(middleware.AuthMiddleware())
+	messages.Use(middleware.RateLimit(60, time.Minute))
 	{
 		messages.POST("", handlers.SendMessage(db))
+		messages.POST("/attachment", handlers.UploadMessageAttachment(db))
 		messages.GET("", handlers.GetConversations(db))
 		messages.GET("/item/:itemId", handlers.GetMessagesByItem(db))
 		messages.PUT("/item/:itemId/read", handlers.MarkMessagesAsRead(db))
 	}
 
-	// Rotas de administração (protegidas: exigem role=admin)
 	admin.RegisterRoutes(r, db)
 
-	// Rota de teste
 	r.GET("/api/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Iniciar servidor
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -115,28 +200,85 @@ func main() {
 	}
 }
 
-// initAdminRegistry registra todos os models existentes no admin (estilo Django).
-// Sempre que um model/ módulo novo for criado, ele deve ser adicionado aqui —
-// ver skill .reasonix/skills/admin-module/SKILL.md.
 func initAdminRegistry() error {
 	if err := admin.Register(&models.User{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.UserProfile{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.Category{}); err != nil {
 		return err
 	}
 	if err := admin.Register(&models.Item{}); err != nil {
 		return err
 	}
+	if err := admin.Register(&models.ItemImage{}); err != nil {
+		return err
+	}
 	if err := admin.Register(&models.Message{}); err != nil {
 		return err
 	}
-	// Rótulos amigáveis em pt-BR para a navegação do admin.
+	if err := admin.Register(&models.Country{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.State{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.City{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.Follow{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.ItemFavorite{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.ItemComment{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.ItemView{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.Review{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.Configuration{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.EmailVerificationCode{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.ItemSaleFeedback{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.Boost{}); err != nil {
+		return err
+	}
 	admin.SetCollectionLabel("user", "Usuários")
+	admin.SetCollectionLabel("user_profile", "Perfis")
+	admin.SetCollectionLabel("category", "Categorias")
 	admin.SetCollectionLabel("item", "Itens")
+	admin.SetCollectionLabel("item_image", "Fotos de anúncios")
 	admin.SetCollectionLabel("message", "Mensagens")
+	admin.SetCollectionLabel("country", "Países")
+	admin.SetCollectionLabel("state", "Estados")
+	admin.SetCollectionLabel("city", "Cidades")
+	admin.SetCollectionLabel("follow", "Seguidores")
+	admin.SetCollectionLabel("item_favorite", "Favoritos")
+	admin.SetCollectionLabel("item_comment", "Comentários de anúncios")
+	admin.SetCollectionLabel("item_view", "Visualizações de anúncios")
+	admin.SetCollectionLabel("review", "Avaliações")
+	admin.SetCollectionLabel("configuration", "Configurações")
+	admin.SetCollectionLabel("email_verification_code", "Códigos de verificação de e-mail")
+	admin.SetCollectionLabel("item_sale_feedback", "Avaliações de venda")
+	admin.SetCollectionLabel("boost", "Impulsionamentos")
+	// Precisa rodar depois de todos os Register() acima: liga campos "*_id" às
+	// collections que eles referenciam (para o admin mostrar nome em vez de ID).
+	admin.ResolveRelations()
 	return nil
 }
 
-// bootstrapAdmins promove os usuários listados em ADMIN_EMAILS (separados por
-// vírgula) para o papel "admin" no boot.
 func bootstrapAdmins(db *gorm.DB) error {
 	emails := config.AdminEmails()
 	if len(emails) == 0 {
@@ -151,6 +293,19 @@ func bootstrapAdmins(db *gorm.DB) error {
 		}
 		if res.RowsAffected > 0 {
 			log.Printf("admin: %s promoted to admin", email)
+		}
+	}
+	return nil
+}
+
+func backfillUserProfiles(db *gorm.DB) error {
+	var users []models.User
+	if err := db.Find(&users).Error; err != nil {
+		return err
+	}
+	for _, u := range users {
+		if _, err := handlers.EnsureUserProfile(db, u.ID); err != nil {
+			return err
 		}
 	}
 	return nil

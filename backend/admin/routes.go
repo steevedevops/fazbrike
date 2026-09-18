@@ -19,6 +19,9 @@ func RegisterRoutes(r *gin.Engine, db *gorm.DB) {
 	{
 		group.GET("/meta", HandleMeta())
 		group.GET("/stats", HandleStats())
+		group.GET("/stats/visits", HandleVisitsStats(db))
+		group.GET("/backup", HandleBackupCreate(db))
+		group.POST("/backup/restore", HandleBackupRestore(db))
 		group.GET("/:collection", HandleList())
 		group.GET("/:collection/:id", HandleGet())
 		group.POST("/:collection", HandleCreate())

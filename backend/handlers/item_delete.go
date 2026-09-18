@@ -36,7 +36,12 @@ func DeleteItem(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := db.Delete(&item).Error; err != nil {
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Where("item_id = ?", item.ID).Delete(&models.ItemImage{}).Error; err != nil {
+				return err
+			}
+			return tx.Delete(&item).Error
+		}); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete item"})
 			return
 		}

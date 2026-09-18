@@ -2,9 +2,8 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { api, ApiError } from '$lib/api';
-	import { collections } from '$lib/meta';
+	import { collections, collectionsLoading } from '$lib/meta';
 	import { toast } from '$lib/toast';
-	import type { CollectionMeta } from '$lib/types';
 	import TopBar from '$lib/components/TopBar.svelte';
 	import RecordForm from '$lib/components/RecordForm.svelte';
 
@@ -31,29 +30,31 @@
 	}
 </script>
 
-{#if !collection}
-	<p>Coleção não encontrada.</p>
+{#if !collection && $collectionsLoading}
+	<p class="page-sub">Carregando…</p>
+{:else if !collection}
+	<p class="page-sub">Coleção não encontrada.</p>
 {:else}
-	<TopBar {collection} />
-	<div class="form-card">
-		<h2 class="title">Novo registro em {collection.label}</h2>
-		<RecordForm {collection} {busy} onSave={save} onCancel={cancel} />
+	<div class="page">
+		<TopBar {collection} title={`Novo · ${collection.label}`} />
+		<div class="form-card">
+			<RecordForm {collection} {busy} onSave={save} onCancel={cancel} />
+		</div>
 	</div>
 {/if}
 
 <style>
+	.page {
+		max-width: 720px;
+		width: 100%;
+		margin: 0 auto;
+	}
 	.form-card {
-		background: var(--card-bg);
+		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		padding: 26px;
-		margin-top: 6px;
-		max-width: 720px;
-		box-shadow: var(--shadow-card);
-	}
-	.title {
-		font-size: 18px;
-		font-weight: 700;
-		margin: 0 0 22px;
+		padding: 28px;
+		margin-top: 20px;
+		box-shadow: var(--shadow-xs);
 	}
 </style>

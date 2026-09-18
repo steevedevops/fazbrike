@@ -12,7 +12,7 @@ export const SearchResultsHeader: React.FC = () => {
         </div>
         <div className="flex items-center space-x-3">
           <span className="text-sm text-gray-500">Sort by:</span>
-          <select className="border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 py-1.5 pl-3 pr-8">
+          <select className="border-gray-300 rounded-md text-sm focus:ring-brand-500 focus:border-brand-500 py-1.5 pl-3 pr-8">
             <option>Best Match</option>
             <option>Price: Low to High</option>
             <option>Price: High to Low</option>
@@ -24,17 +24,17 @@ export const SearchResultsHeader: React.FC = () => {
       {/* Active filters */}
       <div className="flex items-center flex-wrap gap-2">
         <span className="text-sm text-gray-500 mr-2">Active filters:</span>
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-brand-50 text-brand-600 border border-brand-100">
           Ready to ship
-          <button className="ml-1.5 text-blue-400 hover:text-blue-600">
+          <button className="ml-1.5 text-brand-500 hover:text-brand-500">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </span>
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-brand-50 text-brand-600 border border-brand-100">
           Paid Samples
-          <button className="ml-1.5 text-blue-400 hover:text-blue-600">
+          <button className="ml-1.5 text-brand-500 hover:text-brand-500">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

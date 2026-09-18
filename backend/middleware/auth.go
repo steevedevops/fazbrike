@@ -68,6 +68,47 @@ func AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
+// OptionalAuthMiddleware sets user_id when a valid Bearer token is present; otherwise continues anonymously.
+func OptionalAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.Next()
+			return
+		}
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader {
+			c.Next()
+			return
+		}
+		token, err := jwt.Parse(tokenString,
+			func(token *jwt.Token) (interface{}, error) {
+				return []byte(config.JWTSecret()), nil
+			},
+			jwt.WithValidMethods([]string{"HS256"}),
+		)
+		if err != nil || !token.Valid {
+			c.Next()
+			return
+		}
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			c.Next()
+			return
+		}
+		userID, ok := claims["user_id"].(float64)
+		if !ok {
+			c.Next()
+			return
+		}
+		c.Set("user_id", uint(userID))
+		if role, ok := claims["role"].(string); ok {
+			c.Set("role", role)
+		}
+		c.Next()
+	}
+}
+
 // AdminMiddleware exige autenticação E papel "admin" **atual no banco**.
 // O papel é relido do banco (e não confiado no token) para que demissões/
 // promoções reflitam imediatamente e tokens forjados não concedam acesso.

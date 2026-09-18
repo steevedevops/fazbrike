@@ -1,120 +1,198 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { Logo } from '@/components/Logo';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { apiService } from '@/lib/services/api';
+import { playMessageSound } from '@/lib/messageSound';
+import { CATEGORIES } from '@/lib/catalog';
+import {
+  containerClass,
+  cx,
+} from '@/lib/ui-classes';
+
+const headerCats = CATEGORIES.filter((c) =>
+  ['roupas', 'eletronicos', 'veiculos', 'imoveis', 'moveis', 'esportes', 'outros'].includes(c.slug)
+).map((c) => ({
+  href: `/geral?category=${c.slug}`,
+  slug: c.slug,
+  label: c.name.toLowerCase(),
+}));
 
 export const Header: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeCategory = searchParams.get('category') || '';
   const [query, setQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [unreadTotal, setUnreadTotal] = useState(0);
+  const prevUnreadRef = useRef<number | null>(null);
+
+  const refreshUnread = useCallback(async () => {
+    if (!isAuthenticated) {
+      setUnreadTotal(0);
+      prevUnreadRef.current = null;
+      return;
+    }
+    try {
+      const convs = await apiService.getConversations();
+      const total = (convs || []).reduce((sum, c) => sum + (c.unread_count || 0), 0);
+      if (prevUnreadRef.current !== null && total > prevUnreadRef.current) {
+        playMessageSound();
+      }
+      prevUnreadRef.current = total;
+      setUnreadTotal(total);
+    } catch {
+      // badge é polish
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    refreshUnread();
+    if (!isAuthenticated) return;
+    const id = setInterval(refreshUnread, 12000);
+    return () => clearInterval(id);
+  }, [isAuthenticated, refreshUnread]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = query.trim();
-    if (!q) {
-      setIsSearchOpen(false);
-      return;
-    }
+    if (!q) return;
     router.push(`/buscar?q=${encodeURIComponent(q)}`);
     setQuery('');
-    setIsSearchOpen(false);
+    setIsMenuOpen(false);
   };
 
-  const navLinks = [
-    { href: '/', label: 'Loja' },
-    { href: '/novidades', label: 'Novidades' },
-    { href: '/marcas', label: 'Marcas' },
-    { href: '/promocoes', label: 'Promoções' },
-  ];
+  const closeMenus = () => setIsMenuOpen(false);
+
+  const isCatActive = (slug: string) =>
+    pathname.startsWith('/geral') && activeCategory === slug;
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex-shrink-0 flex items-center">
-            <span className="text-2xl font-serif font-bold text-gray-900 tracking-tight">
-              FAZBRIKE
-            </span>
-          </Link>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-surface border-b border-[color:var(--color-border)]">
+      <div className={containerClass}>
+        <div className="flex items-center gap-3 sm:gap-4 h-[68px]">
+          <Logo href="/" markSize={32} showWordmark={false} onClick={closeMenus} />
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            {navLinks.map((link) => (
+          <form
+            onSubmit={handleSearch}
+            className="flex-1 min-w-0 max-w-xl"
+            role="search"
+          >
+            <label htmlFor="campo-busca" className="sr-only">
+              Buscar produtos
+            </label>
+            <div className="relative">
+              <input
+                id="campo-busca"
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder='busque "iphone", "sofá", "bike"…'
+                className="w-full min-h-11 pl-5 pr-12 py-2.5 bg-subtle border-0 rounded-pill type-body text-ink placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+              />
+              <button
+                type="submit"
+                className="absolute inset-y-0 right-0 flex items-center justify-center w-11 text-muted hover:text-ink"
+                aria-label="Buscar"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
+                </svg>
+              </button>
+            </div>
+          </form>
+
+          <nav
+            className="hidden lg:flex items-center gap-4 xl:gap-5 shrink-0 ml-auto"
+            aria-label="Categorias"
+          >
+            {headerCats.map((link) => (
               <Link
-                key={link.href}
+                key={link.slug}
                 href={link.href}
-                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                className={cx(
+                  'type-meta lowercase tracking-tight pb-0.5 border-b-2 transition-colors',
+                  isCatActive(link.slug)
+                    ? 'text-ink border-brand-500 font-medium'
+                    : 'text-muted border-transparent hover:text-ink'
+                )}
+                aria-current={isCatActive(link.slug) ? 'page' : undefined}
               >
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/vender"
-              className="text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors"
-            >
-              Vender
-            </Link>
           </nav>
 
-          {/* Icons */}
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="p-2 text-gray-400 hover:text-gray-900 transition-colors"
-              aria-label="Buscar"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
+          <div
+            className="hidden sm:block w-px h-6 bg-[color:var(--color-border)] shrink-0"
+            aria-hidden
+          />
 
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <Link
               href="/messages"
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label="Mensagens"
+              className="relative hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-pill text-brand-500 hover:bg-subtle"
+              aria-label={unreadTotal > 0 ? `Mensagens (${unreadTotal} não lidas)` : 'Mensagens'}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M8.228 9c.549-1.165 1.956-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
+              {unreadTotal > 0 && (
+                <span className="absolute top-1 right-1 inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-pill bg-brand-500 text-white text-[10px] font-bold leading-none">
+                  {unreadTotal > 9 ? '9+' : unreadTotal}
+                </span>
+              )}
             </Link>
 
             {isAuthenticated ? (
               <Link
                 href="/perfil"
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                aria-label="Perfil"
+                className="hidden sm:inline type-meta text-muted hover:text-ink lowercase"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                perfil
               </Link>
             ) : (
               <Link
                 href="/login"
-                className="hidden sm:inline-flex text-sm font-medium text-gray-900 hover:text-gray-600 transition-colors px-3 py-2"
+                className="hidden sm:inline type-meta text-muted hover:text-ink lowercase"
               >
-                Entrar
+                entrar
               </Link>
             )}
 
-            {/* Mobile menu button */}
+            <Link
+              href="/vender"
+              className="hidden sm:inline-flex items-center justify-center min-h-10 px-5 type-meta font-semibold lowercase rounded-pill bg-brand-500 text-white hover:bg-brand-600"
+            >
+              quero vender
+            </Link>
+
             <button
               type="button"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 text-gray-400 hover:text-gray-900 transition-colors"
+              onClick={() => setIsMenuOpen((open) => !open)}
+              className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-pill text-muted hover:bg-subtle hover:text-ink"
               aria-label="Menu"
+              aria-expanded={isMenuOpen}
+              aria-controls="menu-mobile"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                 {isMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
@@ -122,43 +200,27 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Overlay */}
-      {isSearchOpen && (
-        <div className="absolute top-16 left-0 w-full bg-white border-b border-gray-100 p-4 shadow-sm">
-          <form onSubmit={handleSearch} className="max-w-3xl mx-auto flex items-center gap-2">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar produtos..."
-              className="flex-1 text-lg border border-gray-200 rounded-lg px-4 py-2 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900"
-              autoFocus
-            />
-            <button
-              type="submit"
-              className="bg-gray-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              Buscar
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* Mobile menu */}
       {isMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-100 shadow-sm">
-          <nav className="px-4 py-4 space-y-2">
+        <div
+          id="menu-mobile"
+          className="lg:hidden border-t border-[color:var(--color-border)] bg-surface"
+        >
+          <nav className="px-4 py-3 flex flex-col" aria-label="Menu mobile">
             {[
-              ...navLinks,
-              { href: '/vender', label: 'Vender' },
-              { href: '/messages', label: 'Mensagens' },
-              { href: isAuthenticated ? '/perfil' : '/login', label: isAuthenticated ? 'Meu perfil' : 'Entrar' },
+              ...headerCats,
+              { href: '/vender', label: 'quero vender', slug: 'vender' },
+              { href: '/messages', label: 'mensagens', slug: 'messages' },
+              {
+                href: isAuthenticated ? '/perfil' : '/login',
+                label: isAuthenticated ? 'meu perfil' : 'entrar',
+                slug: 'account',
+              },
             ].map((link) => (
               <Link
                 key={`${link.href}-${link.label}`}
                 href={link.href}
-                onClick={() => setIsMenuOpen(false)}
-                className="block text-sm font-medium text-gray-700 py-2 hover:text-gray-900 transition-colors"
+                onClick={closeMenus}
+                className="type-body text-ink lowercase py-3 border-b border-[color:var(--color-border)] last:border-b-0"
               >
                 {link.label}
               </Link>

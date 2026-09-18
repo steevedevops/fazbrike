@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { CollectionMeta, FieldMeta } from '$lib/types';
 	import type { Snippet } from 'svelte';
+	import { getEnumOption } from '$lib/enums';
+	import StatusBadge from './StatusBadge.svelte';
 
 	interface Props {
 		collection: CollectionMeta;
@@ -10,9 +12,7 @@
 		onSort?: (field: string) => void;
 		onEdit?: (id: number) => void;
 		onDelete?: (id: number) => void;
-		/** Ações extras renderizadas por linha (recebem o registro), antes de Editar/Excluir. */
 		rowActions?: Snippet<[Record<string, unknown>]>;
-		/** Conteúdo filho (usado para declarar snippets nomeados). */
 		children?: Snippet;
 	}
 	let {
@@ -29,9 +29,9 @@
 
 	let selected = $state<Set<string>>(new Set());
 
+	// Limpa a seleção sempre que a lista muda (troca de coleção, página ou busca).
 	$effect(() => {
-		// limpa seleção quando a lista muda
-		selected = new Set();
+		if (records) selected = new Set();
 	});
 
 	function toggleAll(e: Event) {
@@ -53,9 +53,8 @@
 
 	const allSelected = $derived(records.length > 0 && records.every((r) => selected.has(String(r.id))));
 
-	// Busca o rótulo/cor para o valor de um campo.
 	function fmt(f: FieldMeta, v: unknown): string {
-		if (v === null || v === undefined || v === '') return '';
+		if (v === null || v === undefined || v === '') return '—';
 		if (f.kind === 'bool') return v ? 'Sim' : 'Não';
 		if (f.kind === 'time') {
 			const s = String(v);
@@ -64,6 +63,17 @@
 		}
 		if (typeof v === 'object') return JSON.stringify(v ?? '');
 		return String(v);
+	}
+
+	// Campos de relação (ex.: user_id) trazem o rótulo já resolvido pelo backend
+	// em "<key>_label" (1 query em lote por coluna, não por linha — ver
+	// attachRelationLabels no backend). Sem isso, o valor cru seria só o ID.
+	function relationLabel(f: FieldMeta, r: Record<string, unknown>): string {
+		const label = r[`${f.key}_label`];
+		if (label !== null && label !== undefined && label !== '') return String(label);
+		const raw = r[f.key];
+		if (raw === null || raw === undefined || raw === '') return '—';
+		return `#${raw}`;
 	}
 
 	function sortIcon(field: string) {
@@ -82,7 +92,7 @@
 				{#each visibleFields as f (f.key)}
 					<th class:sortable={f.sortable}>
 						{#if f.sortable}
-							<button class="th-btn" onclick={() => onSort(f.key)}>
+							<button class="th-btn" type="button" onclick={() => onSort(f.key)}>
 								{f.label} <span class="arrow">{sortIcon(f.key)}</span>
 							</button>
 						{:else}
@@ -90,7 +100,7 @@
 						{/if}
 					</th>
 				{/each}
-				<th class="actions-col"></th>
+				<th class="actions-col">Ações</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -105,22 +115,29 @@
 						/>
 					</td>
 					{#each visibleFields as f (f.key)}
-						<td class="cell" title={fmt(f, r[f.key])}>{fmt(f, r[f.key])}</td>
+						{@const enumOption = getEnumOption(collection.name, f.key, r[f.key])}
+						{#if f.relation}
+							<td class="cell" title={relationLabel(f, r)}>{relationLabel(f, r)}</td>
+						{:else if enumOption && r[f.key] !== null && r[f.key] !== undefined && r[f.key] !== ''}
+							<td class="cell"><StatusBadge option={enumOption} /></td>
+						{:else}
+							<td class="cell" title={fmt(f, r[f.key])}>{fmt(f, r[f.key])}</td>
+						{/if}
 					{/each}
 					<td class="row-actions">
 						{#if rowActions}
 							{@render rowActions(r)}
 						{/if}
-						<button class="ra edit" onclick={() => onEdit(r.id as number)} title="Editar">Editar</button>
-						<button class="ra delete" onclick={() => onDelete(r.id as number)} title="Excluir">Excluir</button>
+						<button class="ra edit" type="button" onclick={() => onEdit(r.id as number)}>Editar</button>
+						<button class="ra delete" type="button" onclick={() => onDelete(r.id as number)}>Excluir</button>
 					</td>
 				</tr>
 			{:else}
 				<tr>
 					<td colspan={visibleFields.length + 2}>
 						<div class="table-empty">
-							<img src="/favicon.svg" alt="" width="36" />
-							<p>Nenhum registro encontrado</p>
+							<p class="empty-title">Nenhum registro</p>
+							<p class="empty-sub">Crie o primeiro registro ou ajuste a busca.</p>
 						</div>
 					</td>
 				</tr>
@@ -131,39 +148,39 @@
 
 <style>
 	.table-wrap {
-		overflow: hidden;
+		overflow: auto;
 		border-radius: var(--radius);
 		border: 1px solid var(--border);
-		background: var(--card-bg);
-		box-shadow: var(--shadow-card);
+		background: var(--surface);
+		box-shadow: var(--shadow-xs);
 	}
 	.table {
 		width: 100%;
 		border-collapse: collapse;
 		font-size: 13px;
 	}
-	thead th {
-		position: sticky;
-		top: 0;
-	}
 	th {
 		text-align: left;
-		padding: 11px 14px;
+		padding: 10px 14px;
 		font-weight: 600;
-		font-size: 12px;
+		font-size: 11px;
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--text-muted);
+		letter-spacing: 0.05em;
+		color: var(--faint);
 		border-bottom: 1px solid var(--border);
-		background: #f7f8fa;
+		background: var(--subtle);
 		white-space: nowrap;
+		position: sticky;
+		top: 0;
+		z-index: 1;
 	}
 	.ck {
-		width: 38px;
-		padding: 0 0 0 14px !important;
+		width: 40px;
+		padding-left: 14px !important;
 	}
 	.actions-col {
-		width: 150px;
+		width: 1%;
+		text-align: right;
 	}
 	.th-btn {
 		background: none;
@@ -172,71 +189,79 @@
 		font-weight: inherit;
 		color: inherit;
 		font-size: inherit;
+		letter-spacing: inherit;
+		text-transform: inherit;
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
 	}
+	.th-btn:hover {
+		color: var(--ink);
+	}
 	.arrow {
-		color: var(--accent-strong);
-		font-size: 12px;
+		color: var(--accent);
+		font-size: 11px;
+		opacity: 0.7;
 	}
 	td {
-		padding: 11px 14px;
+		padding: 12px 14px;
 		border-bottom: 1px solid var(--border);
 		vertical-align: middle;
-		max-width: 260px;
+		max-width: 280px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		color: var(--text);
+		color: var(--ink);
 	}
 	tr:last-child td {
 		border-bottom: none;
 	}
 	tbody tr {
-		transition: background 0.12s;
+		transition: background 0.1s;
 	}
 	tbody tr:hover {
-		background: #f4faf7;
+		background: rgba(20, 18, 16, 0.025);
 	}
 	.row-actions {
 		text-align: right;
 		white-space: nowrap;
-		opacity: 0;
-		transition: opacity 0.12s ease;
-	}
-	tr:hover .row-actions {
-		opacity: 1;
 	}
 	.ra {
 		border: 1px solid transparent;
-		border-radius: var(--radius-sm);
-		padding: 4px 9px;
+		border-radius: var(--radius-xs);
+		padding: 5px 10px;
 		font-size: 12px;
-		font-weight: 600;
+		font-weight: 550;
 		margin-left: 2px;
+		background: transparent;
+		transition: background 0.12s, border-color 0.12s, color 0.12s;
 	}
 	.ra.edit {
-		color: var(--accent-strong);
+		color: var(--muted);
 	}
 	.ra.edit:hover {
-		background: var(--accent-soft);
-		border-color: var(--accent);
+		color: var(--ink);
+		background: var(--subtle);
+		border-color: var(--border);
 	}
 	.ra.delete {
 		color: var(--danger);
 	}
 	.ra.delete:hover {
 		background: var(--danger-soft);
-		border-color: var(--danger);
+		border-color: transparent;
 	}
 	.table-empty {
 		text-align: center;
-		padding: 48px 16px;
-		color: var(--text-muted);
+		padding: 56px 16px;
 	}
-	.table-empty img {
-		opacity: 0.3;
-		margin-bottom: 10px;
+	.empty-title {
+		font-weight: 600;
+		color: var(--ink);
+		margin-bottom: 4px;
+	}
+	.empty-sub {
+		color: var(--muted);
+		font-size: 13px;
 	}
 </style>

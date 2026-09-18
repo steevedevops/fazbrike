@@ -162,13 +162,15 @@ O projeto utiliza a cor roxa como cor primária, com uma paleta de cores que vai
 
 ## 📝 Próximos Passos
 
-- [ ] Implementar CRUD de itens
-- [ ] Sistema de busca
-- [ ] Upload de imagens
-- [ ] Chat entre usuários
-- [ ] Sistema de avaliações
-- [ ] Notificações
-- [ ] Filtros avançados
+- [x] CRUD de itens (criar, listar, detalhe, editar, excluir)
+- [x] Sistema de busca e filtros (preço, categoria, localização, condição)
+- [x] Upload de imagens
+- [x] Chat entre usuários (inbox + badge de não lidas)
+- [ ] Sistema de avaliações / reputação do vendedor
+- [ ] Notificações em tempo real (WebSocket/SSE)
+- [ ] Favoritos / salvos
+- [ ] Marcar anúncio como vendido
+- [ ] Múltiplas fotos por anúncio
 
 ## 🤝 Contribuição
 

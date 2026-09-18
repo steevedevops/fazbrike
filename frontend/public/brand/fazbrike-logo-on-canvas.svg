@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="160" viewBox="0 0 640 160" fill="none" role="img" aria-label="fazbrike">
+  <rect width="640" height="160" fill="#FAF8F5"/>
+  <rect x="32" y="40" width="80" height="80" rx="18" fill="#C45C26"/>
+  <rect x="54" y="58" width="14" height="44" rx="4" fill="#FFFFFF"/>
+  <rect x="54" y="58" width="36" height="14" rx="4" fill="#FFFFFF"/>
+  <rect x="54" y="78" width="28" height="14" rx="4" fill="#FFFFFF"/>
+  <text x="132" y="98" fill="#1C1917" font-family="Manrope, Inter, Arial, Helvetica, sans-serif" font-size="56" font-weight="800" letter-spacing="-1.5">fazbrike</text>
+</svg>

@@ -144,6 +144,29 @@ func HandleList() gin.HandlerFunc {
 		var total int64
 		totalQ.Model(reflect.New(mc.ModelType).Interface()).Count(&total)
 
+		// Projeção opcional de colunas (?fields=id,name) — usada pelo seletor de
+		// relação no admin para buscar só id+rótulo em vez da linha inteira
+		// (evita ler/transferir colunas grandes, ex.: description, a cada tecla digitada).
+		if sel := c.Query("fields"); sel != "" {
+			valid := map[string]bool{}
+			for _, f := range mc.Meta.Fields {
+				valid[f.Key] = true
+			}
+			cols := []string{Quote("id")}
+			seen := map[string]bool{"id": true}
+			for _, s := range strings.Split(sel, ",") {
+				s = strings.TrimSpace(s)
+				if s == "" || seen[s] || !valid[s] {
+					continue
+				}
+				cols = append(cols, Quote(s))
+				seen[s] = true
+			}
+			if len(cols) > 1 {
+				db = db.Select(strings.Join(cols, ","))
+			}
+		}
+
 		db = applyOrder(db, mc, c.Query("sort"))
 		db = db.Offset((page - 1) * perPage).Limit(perPage)
 
@@ -163,6 +186,7 @@ func HandleList() gin.HandlerFunc {
 			row := modelToMap(rec, mc)
 			rows = append(rows, row)
 		}
+		attachRelationLabels(dbFrom(c), mc, rows)
 
 		totalPages := 0
 		if total > 0 {
@@ -193,7 +217,9 @@ func HandleGet() gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Record not found"})
 			return
 		}
-		c.JSON(http.StatusOK, modelToMap(reflect.ValueOf(rec).Elem(), mc))
+		row := modelToMap(reflect.ValueOf(rec).Elem(), mc)
+		attachRelationLabels(dbFrom(c), mc, []map[string]interface{}{row})
+		c.JSON(http.StatusOK, row)
 	}
 }
 
@@ -224,7 +250,9 @@ func HandleCreate() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusCreated, modelToMap(rec, mc))
+		row := modelToMap(rec, mc)
+		attachRelationLabels(dbFrom(c), mc, []map[string]interface{}{row})
+		c.JSON(http.StatusCreated, row)
 	}
 }
 
@@ -260,7 +288,9 @@ func HandleUpdate() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, modelToMap(rec, mc))
+		row := modelToMap(rec, mc)
+		attachRelationLabels(dbFrom(c), mc, []map[string]interface{}{row})
+		c.JSON(http.StatusOK, row)
 	}
 }
 
@@ -362,6 +392,54 @@ func wireValue(v reflect.Value) interface{} {
 	}
 }
 
+// attachRelationLabels resolve o rótulo amigável de cada FK presente nas
+// linhas, em lote: 1 query por campo de relação (não por linha), buscando só
+// os IDs distintos que aparecem na página atual. Evita N+1 queries e mantém a
+// listagem rápida mesmo em collections com várias relações.
+func attachRelationLabels(db *gorm.DB, mc *RegisteredCollection, rows []map[string]interface{}) {
+	for _, fm := range mc.Meta.Fields {
+		if fm.Relation == nil {
+			continue
+		}
+		target := FindCollection(fm.Relation.Collection)
+		if target == nil {
+			continue
+		}
+		ids := map[string]interface{}{}
+		for _, row := range rows {
+			if v := row[fm.Key]; v != nil {
+				ids[fmt.Sprint(v)] = v
+			}
+		}
+		if len(ids) == 0 {
+			continue
+		}
+		idList := make([]interface{}, 0, len(ids))
+		for _, v := range ids {
+			idList = append(idList, v)
+		}
+		var results []map[string]interface{}
+		db.Session(&gorm.Session{}).
+			Model(reflect.New(target.ModelType).Interface()).
+			Select(Quote("id") + " AS id, " + Quote(fm.Relation.LabelField) + " AS label").
+			Where(Quote("id")+" IN ?", idList).
+			Find(&results)
+		labelByID := make(map[string]string, len(results))
+		for _, r := range results {
+			labelByID[fmt.Sprint(r["id"])] = fmt.Sprint(r["label"])
+		}
+		for _, row := range rows {
+			v := row[fm.Key]
+			if v == nil {
+				continue
+			}
+			if lbl, ok := labelByID[fmt.Sprint(v)]; ok {
+				row[fm.Key+"_label"] = lbl
+			}
+		}
+	}
+}
+
 // fieldIndex mapeia a chave json de volta ao struct field.
 func fieldIndex(t reflect.Type, key string) (reflect.StructField, bool) {
 	for i := 0; i < t.NumField(); i++ {
@@ -379,11 +457,17 @@ func fieldIndex(t reflect.Type, key string) (reflect.StructField, bool) {
 
 // setField grava um valor JSON cru (decodificado) num campo do struct.
 func setField(v reflect.Value, field reflect.StructField, raw interface{}) error {
-	if raw == nil {
-		return nil
-	}
 	target := v.FieldByIndex(field.Index)
 	if !target.CanSet() {
+		return nil
+	}
+	if raw == nil {
+		// JSON null explícito limpa campos nullable (ex.: desvincular uma
+		// relação opcional); chave ausente no payload já foi filtrada antes
+		// de chegar aqui e não passa por este caminho.
+		if target.Kind() == reflect.Ptr {
+			target.Set(reflect.Zero(target.Type()))
+		}
 		return nil
 	}
 

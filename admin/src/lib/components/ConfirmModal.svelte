@@ -23,17 +23,17 @@
 			class="modal"
 			role="dialog"
 			aria-modal="true"
+			aria-labelledby="confirm-title"
 			tabindex="-1"
 			onclick={(e) => e.stopPropagation()}
 			onkeydown={(e) => e.key === 'Escape' && onCancel()}
 		>
-			<div class="icon">⚠</div>
-			<h3>{title}</h3>
+			<h3 id="confirm-title">{title}</h3>
 			<p>{message}</p>
 			<div class="actions">
-				<button class="btn ghost" onclick={onCancel} disabled={busy}>Cancelar</button>
-				<button class="btn danger" onclick={onConfirm} disabled={busy}>
-					{busy ? 'Excluindo…' : 'Confirmar'}
+				<button class="btn ghost" type="button" onclick={onCancel} disabled={busy}>Cancelar</button>
+				<button class="btn danger" type="button" onclick={onConfirm} disabled={busy}>
+					{busy ? 'Excluindo…' : 'Excluir'}
 				</button>
 			</div>
 		</div>
@@ -44,53 +44,56 @@
 	.overlay {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.4);
+		background: rgba(28, 25, 23, 0.35);
 		display: grid;
 		place-items: center;
 		z-index: 50;
+		animation: fade 0.15s ease-out;
+		backdrop-filter: blur(2px);
+	}
+	@keyframes fade {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 	.modal {
-		width: 380px;
+		width: 400px;
 		max-width: 92vw;
-		background: #fff;
-		border-radius: 10px;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 12px;
 		padding: 24px;
-		text-align: center;
+		box-shadow: var(--shadow-md);
+		animation: pop 0.18s ease-out;
 	}
-	.icon {
-		font-size: 34px;
+	@keyframes pop {
+		from {
+			opacity: 0;
+			transform: translateY(8px) scale(0.98);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
 	}
 	h3 {
-		margin: 12px 0 6px;
-		font-size: 18px;
+		margin: 0 0 8px;
+		font-size: 16px;
+		font-weight: 650;
+		letter-spacing: -0.01em;
 	}
 	p {
-		color: var(--text-muted);
+		color: var(--muted);
 		font-size: 13px;
-		margin-bottom: 20px;
+		margin: 0 0 22px;
+		line-height: 1.5;
 	}
 	.actions {
 		display: flex;
-		justify-content: center;
-		gap: 10px;
-	}
-	.btn {
-		padding: 8px 18px;
-		border-radius: var(--radius-sm);
-		font-weight: 600;
-		font-size: 13px;
-		border: 1px solid transparent;
-	}
-	.btn.ghost {
-		background: #fff;
-		border-color: var(--border-strong);
-		color: var(--text);
-	}
-	.btn.danger {
-		background: var(--danger);
-		color: #fff;
-	}
-	.btn:disabled {
-		opacity: 0.6;
+		justify-content: flex-end;
+		gap: 8px;
 	}
 </style>

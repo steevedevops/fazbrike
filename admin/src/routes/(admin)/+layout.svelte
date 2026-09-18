@@ -12,17 +12,19 @@
 	let { children }: Props = $props();
 
 	onMount(() => {
-		loadCollections();
+		void loadCollections();
 	});
 
-	// Guard de rota SEM loop: só navega uma vez quando o estado de auth está resolvido.
-	// `navigated` evita repetir goto('/login') a cada re-avaliação do efeito.
-	let navigated = false;
+	let navigated = $state(false);
 
 	$effect(() => {
 		if (navigated) return;
 		if ($authLoading) return;
-		if ($currentUser) return;
+		if ($currentUser) {
+			// Garante coleções no menu assim que o admin autenticar
+			void loadCollections();
+			return;
+		}
 		if (typeof window !== 'undefined') {
 			navigated = true;
 			goto('/login', { replaceState: true });
@@ -45,29 +47,29 @@
 	.shell {
 		display: flex;
 		min-height: 100vh;
+		background: var(--canvas);
 	}
 	.content {
 		flex: 1;
-		padding: 26px 32px 48px;
+		min-width: 0;
+		padding: 24px 28px 40px;
 		max-width: 100%;
+		animation: enter 0.2s ease-out;
+	}
+	@keyframes enter {
+		from {
+			opacity: 0;
+			transform: translateY(4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 	.boot {
 		min-height: 100vh;
 		display: grid;
 		place-items: center;
-		background: var(--sidebar-bg);
-	}
-	.spinner {
-		width: 34px;
-		height: 34px;
-		border: 3px solid #3a3f4b;
-		border-top-color: var(--accent-strong);
-		border-radius: 50%;
-		animation: rot 0.8s linear infinite;
-	}
-	@keyframes rot {
-		to {
-			transform: rotate(360deg);
-		}
+		background: var(--canvas);
 	}
 </style>

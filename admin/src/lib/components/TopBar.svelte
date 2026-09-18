@@ -6,36 +6,39 @@
 		collection?: CollectionMeta | null;
 		onSearch?: (v: string) => void;
 		searchPlaceholder?: string;
+		title?: string;
 		actions?: Snippet;
 	}
 	let {
 		collection = null,
-		onSearch = () => {},
+		onSearch,
 		searchPlaceholder = 'Pesquisar…',
+		title,
 		actions
 	}: Props = $props();
+
+	const heading = $derived(title ?? collection?.label ?? '…');
 </script>
 
 <header class="topbar">
-	<nav class="breadcrumb">
-		<a href="/" class="crumb">Collections</a>
-		<span class="sep">/</span>
-		<span class="current">{collection?.label ?? '…'}</span>
-	</nav>
-	<div class="actions">
+	<div class="left">
+		<nav class="crumbs" aria-label="Navegação">
+			<a href="/">Coleções</a>
+			{#if collection || title}
+				<span>/</span>
+				<strong>{heading}</strong>
+			{/if}
+		</nav>
+	</div>
+	<div class="right">
 		{#if onSearch}
-			<div class="search-wrap">
-				<svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<circle cx="11" cy="11" r="7" />
-					<path d="m21 21-4.3-4.3" stroke-linecap="round" />
+			<label class="search">
+				<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+					<circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.25" />
+					<path d="M10.5 10.5 13.5 13.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
 				</svg>
-				<input
-					type="search"
-					oninput={(e) => onSearch(e.currentTarget.value)}
-					placeholder={searchPlaceholder}
-					class="search"
-				/>
-			</div>
+				<input type="search" oninput={(e) => onSearch(e.currentTarget.value)} placeholder={searchPlaceholder} />
+			</label>
 		{/if}
 		{#if actions}
 			{@render actions()}
@@ -49,58 +52,64 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
-		padding: 16px 0 0;
-		margin-bottom: 18px;
+		padding-bottom: 16px;
+		margin-bottom: 4px;
+		border-bottom: 1px solid var(--border);
+		flex-wrap: wrap;
 	}
-	.breadcrumb {
+	.crumbs {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		font-size: 14px;
+		letter-spacing: -0.02em;
 	}
-	.crumb {
-		color: var(--text-muted);
+	.crumbs a {
+		color: var(--muted);
 		font-weight: 500;
 	}
-	.crumb:hover {
-		color: var(--accent-strong);
+	.crumbs a:hover {
+		color: var(--ink);
 	}
-	.sep {
-		color: #c0c3c9;
+	.crumbs span {
+		color: var(--border-strong);
 	}
-	.current {
-		color: var(--text);
+	.crumbs strong {
 		font-weight: 600;
+		color: var(--ink);
 	}
-	.actions {
+	.right {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-	}
-	.search-wrap {
-		position: relative;
-	}
-	.search-ico {
-		position: absolute;
-		left: 10px;
-		top: 50%;
-		transform: translateY(-50%);
-		width: 15px;
-		height: 15px;
-		color: var(--text-muted);
-		pointer-events: none;
+		gap: 8px;
+		flex-wrap: wrap;
 	}
 	.search {
-		padding: 8px 12px 8px 32px;
-		border: 1px solid var(--border-strong);
+		display: flex;
+		align-items: center;
+		gap: 7px;
+		padding: 7px 10px;
+		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
-		width: 240px;
-		font-size: 13px;
-		outline: none;
-		transition: border-color 0.15s, box-shadow 0.15s;
+		background: var(--surface);
+		min-width: 200px;
 	}
-	.search:focus {
-		border-color: var(--accent-strong);
+	.search:focus-within {
+		border-color: var(--ink);
 		box-shadow: 0 0 0 3px var(--accent-soft);
+	}
+	.search svg {
+		width: 13px;
+		height: 13px;
+		color: var(--faint);
+		flex-shrink: 0;
+	}
+	.search input {
+		border: none;
+		outline: none;
+		background: transparent;
+		width: 100%;
+		padding: 0;
+		font-size: 13px;
 	}
 </style>

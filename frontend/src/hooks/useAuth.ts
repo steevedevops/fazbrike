@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
-import { User, LoginRequest, RegisterRequest, LoginResponse } from '@/lib/services/api';
+import {
+  User,
+  LoginRequest,
+  RegisterRequest,
+  RegisterResponse,
+  VerifyEmailCodeRequest,
+  ResendEmailCodeRequest,
+  LoginResponse,
+} from '@/lib/services/api';
 import { apiService } from '@/lib/services/api';
 
 /**
@@ -50,18 +58,26 @@ export const useAuth = () => {
     }
   };
 
+  // Cadastro não loga direto: a conta fica pendente até o código enviado por
+  // email ser confirmado em verifyEmailCode().
   const register = async (name: string, email: string, password: string) => {
-    try {
-      const userData: RegisterRequest = { name, email, password };
-      const data = await apiService.post<LoginResponse>('/auth/register', userData);
-      
-      setUser(data.user);
-      setToken(data.token);
-      apiService.setAuthToken(data.token);
-      localStorage.setItem('token', data.token);
-    } catch (error) {
-      throw error;
-    }
+    const userData: RegisterRequest = { name, email, password };
+    return apiService.post<RegisterResponse>('/auth/register', userData);
+  };
+
+  const verifyEmailCode = async (email: string, code: string) => {
+    const payload: VerifyEmailCodeRequest = { email, code };
+    const data = await apiService.post<LoginResponse>('/auth/verify-code', payload);
+
+    setUser(data.user);
+    setToken(data.token);
+    apiService.setAuthToken(data.token);
+    localStorage.setItem('token', data.token);
+  };
+
+  const resendEmailCode = async (email: string) => {
+    const payload: ResendEmailCodeRequest = { email };
+    return apiService.post<{ message: string }>('/auth/resend-code', payload);
   };
 
   const logout = () => {
@@ -76,6 +92,8 @@ export const useAuth = () => {
     token,
     login,
     register,
+    verifyEmailCode,
+    resendEmailCode,
     logout,
     loading,
     isAuthenticated: !!user && !!token,

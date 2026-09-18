@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { CollectionMeta, FieldMeta } from '$lib/types';
+	import { getEnumOptions } from '$lib/enums';
+	import RelationSelect from './RelationSelect.svelte';
 
 	interface Props {
 		collection: CollectionMeta;
@@ -15,16 +17,24 @@
 
 	let values = $state<Record<string, unknown>>({});
 	$effect(() => {
-		values = {};
+		// Monta o objeto à parte e só depois atribui a `values` uma única vez.
+		// Ler e escrever `values` dentro do mesmo efeito (values[f.key] = ...
+		// logo após values = {}) faz o efeito depender do próprio estado que
+		// ele escreve, causando um loop (effect_update_depth_exceeded) que
+		// trava a navegação depois de abrir um formulário.
+		const next: Record<string, unknown> = {};
 		for (const f of editable) {
 			const v = record ? record[f.key] : '';
-			values[f.key] = v ?? '';
+			next[f.key] = v ?? '';
 		}
+		values = next;
 	});
 
 	function setVal(f: FieldMeta, raw: unknown) {
 		let v = raw;
-		if (f.kind === 'number') {
+		if (f.relation) {
+			v = raw === '' || raw === null || raw === undefined ? null : Number(raw);
+		} else if (f.kind === 'number') {
 			v = raw === '' ? '' : Number(raw);
 		}
 		values = { ...values, [f.key]: v };
@@ -32,12 +42,11 @@
 
 	function submit(e: Event) {
 		e.preventDefault();
-		// remove chaves vazias para não sobrescrever com '' quando não obrigatório
 		const data: Record<string, unknown> = {};
 		for (const f of editable) {
 			const val = values[f.key];
 			if (val === '' || val === null || val === undefined) {
-				if (f.required && !record) continue; // deixa o validador reportar? simplifica: envia vazio
+				if (f.required && !record) continue;
 			}
 			data[f.key] = val;
 		}
@@ -69,15 +78,29 @@
 			</label>
 
 			{#if f.kind === 'bool'}
-				<input
-					id={`f-${f.key}`}
-					type="checkbox"
-					checked={!!values[f.key]}
-					onchange={(e) => setVal(f, e.currentTarget.checked)}
-					class="check"
-				/>
+				<label class="check-row">
+					<input
+						id={`f-${f.key}`}
+						type="checkbox"
+						checked={!!values[f.key]}
+						onchange={(e) => setVal(f, e.currentTarget.checked)}
+						class="check"
+					/>
+					<span>{values[f.key] ? 'Sim' : 'Não'}</span>
+				</label>
 			{:else if f.kind === 'time'}
 				<input id={`f-${f.key}`} type="text" value={values[f.key]} disabled title="Imutável" />
+			{:else if f.relation}
+				<RelationSelect
+					id={`f-${f.key}`}
+					collectionName={f.relation.collection}
+					labelField={f.relation.label_field}
+					value={values[f.key] as number | null}
+					initialLabel={record ? String(record[`${f.key}_label`] ?? '') : ''}
+					required={f.required}
+					excludeId={f.relation.collection === collection.name ? ((record?.id as number | undefined) ?? null) : null}
+					onChange={(v) => setVal(f, v)}
+				/>
 			{:else if f.kind === 'number'}
 				<input
 					id={`f-${f.key}`}
@@ -86,6 +109,20 @@
 					value={String(values[f.key] ?? '')}
 					oninput={(e) => setVal(f, e.currentTarget.value)}
 				/>
+			{:else if getEnumOptions(collection.name, f.key)}
+				<select
+					id={`f-${f.key}`}
+					value={String(values[f.key] ?? '')}
+					onchange={(e) => setVal(f, e.currentTarget.value)}
+					required={f.required}
+				>
+					{#if !f.required}
+						<option value="">— não definido —</option>
+					{/if}
+					{#each getEnumOptions(collection.name, f.key) ?? [] as opt (opt.value)}
+						<option value={opt.value}>{opt.label}</option>
+					{/each}
+				</select>
 			{:else if f.key === 'email'}
 				<input
 					id={`f-${f.key}`}
@@ -133,37 +170,40 @@
 	.form {
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 18px;
 	}
 	.info-box {
-		background: #f7f8fa;
+		background: var(--subtle);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
-		padding: 12px 14px;
+		padding: 14px 16px;
 	}
 	.info-title {
-		font-size: 12px;
+		font-size: 11px;
 		text-transform: uppercase;
-		letter-spacing: 0.4px;
-		color: var(--text-muted);
-		margin-bottom: 8px;
+		letter-spacing: 0.05em;
+		color: var(--faint);
+		margin-bottom: 10px;
+		font-weight: 600;
 	}
 	.info-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-		gap: 8px 12px;
+		gap: 10px 14px;
 	}
 	.info-item {
 		display: flex;
 		flex-direction: column;
+		gap: 2px;
 	}
 	.ik {
 		font-size: 11px;
-		color: var(--text-muted);
+		color: var(--faint);
 	}
 	.iv {
 		font-size: 13px;
 		font-weight: 500;
+		color: var(--ink);
 	}
 	.field {
 		display: flex;
@@ -173,7 +213,7 @@
 	label {
 		font-size: 13px;
 		font-weight: 600;
-		color: var(--text);
+		color: var(--ink);
 	}
 	.req {
 		color: var(--danger);
@@ -183,11 +223,13 @@
 		margin-left: 6px;
 		font-size: 11px;
 		font-weight: 500;
-		color: var(--text-muted);
-		background: #eef0f3;
+		color: var(--muted);
+		background: var(--subtle);
 		padding: 1px 7px;
 		border-radius: 999px;
+		border: 1px solid var(--border);
 	}
+	select,
 	input[type='text'],
 	input[type='email'],
 	input[type='password'],
@@ -199,54 +241,38 @@
 		font-size: 13px;
 		resize: vertical;
 		outline: none;
+		background: var(--surface);
 		transition: border-color 0.15s, box-shadow 0.15s;
 	}
+	select:focus,
 	input:focus,
 	textarea:focus {
-		border-color: var(--accent-strong);
+		border-color: var(--accent);
 		box-shadow: 0 0 0 3px var(--accent-soft);
 	}
 	input:disabled {
-		background: #f5f5f5;
-		color: var(--text-muted);
+		background: var(--subtle);
+		color: var(--muted);
+	}
+	.check-row {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		font-weight: 500;
+		color: var(--muted);
+		cursor: pointer;
 	}
 	.check {
-		width: 18px;
-		height: 18px;
-		accent-color: var(--accent-strong);
+		width: 16px;
+		height: 16px;
+		accent-color: var(--accent);
 	}
 	.actions {
 		display: flex;
 		justify-content: flex-end;
-		gap: 10px;
-		padding-top: 16px;
+		gap: 8px;
+		padding-top: 8px;
 		border-top: 1px solid var(--border);
-	}
-	.btn {
-		padding: 9px 18px;
-		border-radius: var(--radius-sm);
-		font-size: 13px;
-		font-weight: 600;
-		border: 1px solid transparent;
-		transition: background 0.15s, border-color 0.15s;
-	}
-	.btn.ghost {
-		background: #fff;
-		border-color: var(--border-strong);
-		color: var(--text);
-	}
-	.btn.ghost:hover {
-		background: #f5f5f5;
-	}
-	.btn.primary {
-		background: var(--accent-strong);
-		color: #fff;
-	}
-	.btn.primary:hover {
-		background: var(--accent-hover);
-	}
-	.btn:disabled {
-		opacity: 0.6;
-		cursor: default;
+		margin-top: 4px;
 	}
 </style>

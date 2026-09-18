@@ -1,5 +1,10 @@
 export type FieldKind = 'text' | 'number' | 'bool' | 'time' | 'relation';
 
+export interface RelationMeta {
+	collection: string;
+	label_field: string;
+}
+
 export interface FieldMeta {
 	key: string;
 	label: string;
@@ -11,6 +16,7 @@ export interface FieldMeta {
 	hidden_in_form: boolean;
 	editable: boolean;
 	sortable: boolean;
+	relation?: RelationMeta;
 }
 
 export interface CollectionMeta {
@@ -31,6 +37,24 @@ export interface ListResponse {
 	page: number;
 	perPage: number;
 	totalPages: number;
+}
+
+export interface VisitsDailyPoint {
+	date: string;
+	count: number;
+}
+
+export interface VisitsTopItem {
+	item_id: number;
+	title: string;
+	views: number;
+}
+
+export interface VisitsStatsResponse {
+	total: number;
+	days: number;
+	daily: VisitsDailyPoint[];
+	top_items: VisitsTopItem[];
 }
 
 export interface User {

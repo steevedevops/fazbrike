@@ -106,7 +106,23 @@ export const useItems = () => {
     }
   }, []);
 
+  const uploadImages = useCallback(async (itemId: number, files: File[]) => {
+    try {
+      return await apiService.uploadFiles(`/items/${itemId}/images`, files);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao fazer upload das imagens');
+      throw err;
+    }
+  }, []);
 
+  const deleteItemImage = useCallback(async (itemId: number, imageId: number) => {
+    try {
+      await apiService.delete(`/items/${itemId}/images/${imageId}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao remover imagem');
+      throw err;
+    }
+  }, []);
 
   return {
     items,
@@ -120,5 +136,7 @@ export const useItems = () => {
     getUserItems,
     getItem,
     uploadImage,
+    uploadImages,
+    deleteItemImage,
   };
 };

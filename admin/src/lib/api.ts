@@ -1,5 +1,5 @@
 import { PUBLIC_API_URL } from '$env/static/public';
-import type { MetaResponse, ListResponse, User } from './types';
+import type { MetaResponse, ListResponse, User, VisitsStatsResponse } from './types';
 
 const BASE = (PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/$/, '');
 const TOKEN_KEY = 'fazbrike_admin_token';
@@ -33,7 +33,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 	}
 	if (token) headers['Authorization'] = `Bearer ${token}`;
 
-	const res = await fetch(`${BASE}${path}`, { ...options, headers });
+	let res: Response;
+	try {
+		res = await fetch(`${BASE}${path}`, { ...options, headers });
+	} catch {
+		throw new ApiError(
+			`Não foi possível conectar à API (${BASE}). Verifique se o backend está no ar.`,
+			0
+		);
+	}
 
 	if (res.status === 401) {
 		// Token expirado/inválido: limpa e propaga para o guard de rota redirecionar.
@@ -62,6 +70,7 @@ export const api = {
 	me: () => request<User>('/auth/me'),
 	meta: () => request<MetaResponse>('/admin/meta'),
 	stats: () => request<Record<string, number>>('/admin/stats'),
+	visitsStats: (days = 30) => request<VisitsStatsResponse>(`/admin/stats/visits?days=${days}`),
 	list: (collection: string, params: Record<string, string | number> = {}) => {
 		const qs = new URLSearchParams();
 		for (const [k, v] of Object.entries(params)) {
@@ -82,5 +91,56 @@ export const api = {
 			body: JSON.stringify(data)
 		}),
 	remove: (collection: string, id: string | number) =>
-		request<{ success: boolean }>(`/admin/${collection}/${id}`, { method: 'DELETE' })
+		request<{ success: boolean }>(`/admin/${collection}/${id}`, { method: 'DELETE' }),
+	downloadBackup: async () => {
+		const token = getToken();
+		const headers: Record<string, string> = {};
+		if (token) headers['Authorization'] = `Bearer ${token}`;
+		const res = await fetch(`${BASE}/admin/backup`, { headers });
+		if (!res.ok) {
+			let message = `Erro ${res.status}`;
+			try {
+				const body = await res.json();
+				if (body?.error) message = body.error;
+			} catch {
+				/* corpo não-JSON (esperado em caso de sucesso, que é binário) */
+			}
+			throw new ApiError(message, res.status);
+		}
+		const blob = await res.blob();
+		const disposition = res.headers.get('Content-Disposition') ?? '';
+		const match = /filename="([^"]+)"/.exec(disposition);
+		const filename = match?.[1] ?? `fazbrike-backup-${Date.now()}.zip`;
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		URL.revokeObjectURL(url);
+	},
+	restoreBackup: async (file: File, confirm: string) => {
+		const token = getToken();
+		const headers: Record<string, string> = {};
+		if (token) headers['Authorization'] = `Bearer ${token}`;
+		const form = new FormData();
+		form.set('file', file);
+		form.set('confirm', confirm);
+		const res = await fetch(`${BASE}/admin/backup/restore`, {
+			method: 'POST',
+			headers,
+			body: form
+		});
+		let body: { message?: string; error?: string } = {};
+		try {
+			body = await res.json();
+		} catch {
+			/* corpo não-JSON */
+		}
+		if (!res.ok) {
+			throw new ApiError(body?.error ?? `Erro ${res.status}`, res.status);
+		}
+		return body;
+	}
 };

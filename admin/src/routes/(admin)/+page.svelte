@@ -19,104 +19,139 @@
 	});
 </script>
 
-<div class="page-head">
+<header class="head">
 	<div>
 		<h1 class="page-title">Visão geral</h1>
-		<p class="page-sub">Gerencie os dados da plataforma através das coleções</p>
+		<p class="page-sub">Coleções e volume de registros</p>
 	</div>
-</div>
+</header>
 
-<div class="cards">
-	{#each $collections as c (c.name)}
-		<a class="card" href={`/collections/${c.name}`}>
-			<div class="card-top">
-				<span class="card-icon">{c.label.charAt(0).toUpperCase()}</span>
-			</div>
-			<div class="count">{(stats[c.name] ?? 0).toLocaleString('pt-BR')}</div>
-			<div class="cname">{c.label}</div>
-			<div class="card-foot">
-				<span>Abrir</span>
-				<svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
-				</svg>
-			</div>
-		</a>
-	{/each}
-</div>
+{#if loading}
+	<div class="spin-wrap"><div class="spinner"></div></div>
+{:else if $collections.length === 0}
+	<div class="empty">
+		<p><strong>Nenhuma coleção</strong></p>
+		<p>Registre models no backend para aparecerem aqui.</p>
+	</div>
+{:else}
+	<div class="table-card">
+		<table>
+			<thead>
+				<tr>
+					<th>Coleção</th>
+					<th class="num">Registros</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each $collections as c (c.name)}
+					<tr>
+						<td>
+							<a class="name" href={`/collections/${c.name}`}>{c.label}</a>
+							<span class="slug">{c.name}</span>
+						</td>
+						<td class="num">{(stats[c.name] ?? 0).toLocaleString('pt-BR')}</td>
+						<td class="go">
+							<a href={`/collections/${c.name}`}>Abrir</a>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+{/if}
 
 <style>
-	.page-head {
+	.head {
 		margin-bottom: 24px;
 	}
-	.page-title {
-		font-size: 22px;
-		font-weight: 700;
-		color: var(--text);
-	}
-	.page-sub {
-		color: var(--text-muted);
-		font-size: 13px;
-		margin-top: 4px;
-	}
-	.cards {
+	.spin-wrap {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-		gap: 16px;
+		place-items: center;
+		padding: 64px;
 	}
-	.card {
-		background: var(--card-bg);
+	.table-card {
+		background: var(--surface);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		padding: 20px;
-		display: flex;
-		flex-direction: column;
-		box-shadow: var(--shadow-card);
-		transition: box-shadow 0.16s ease, transform 0.16s ease, border-color 0.16s;
+		overflow: hidden;
+		box-shadow: var(--shadow-xs);
 	}
-	.card:hover {
-		border-color: var(--accent);
-		box-shadow: 0 10px 24px rgba(16, 24, 40, 0.1);
-		transform: translateY(-2px);
+	table {
+		width: 100%;
+		border-collapse: collapse;
 	}
-	.card-top {
-		margin-bottom: 14px;
-	}
-	.card-icon {
-		display: inline-grid;
-		place-items: center;
-		width: 38px;
-		height: 38px;
-		border-radius: 10px;
-		background: var(--accent-soft);
-		color: var(--accent-strong);
-		font-size: 17px;
-		font-weight: 700;
-	}
-	.count {
-		font-size: 32px;
-		font-weight: 700;
-		color: var(--sidebar-bg);
-		line-height: 1;
-	}
-	.cname {
-		margin-top: 6px;
-		font-size: 14px;
-		font-weight: 500;
-		color: var(--text-muted);
-	}
-	.card-foot {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-top: 18px;
-		padding-top: 14px;
-		border-top: 1px solid var(--border);
-		font-size: 13px;
+	th {
+		text-align: left;
+		padding: 10px 16px;
+		font-size: 11px;
 		font-weight: 600;
-		color: var(--accent-strong);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--faint);
+		background: var(--subtle);
+		border-bottom: 1px solid var(--border);
 	}
-	.arrow {
-		width: 16px;
-		height: 16px;
+	td {
+		padding: 14px 16px;
+		border-bottom: 1px solid var(--border);
+		vertical-align: middle;
+	}
+	tr:last-child td {
+		border-bottom: none;
+	}
+	tbody tr:hover {
+		background: rgba(20, 18, 16, 0.02);
+	}
+	.name {
+		display: block;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		color: var(--ink);
+	}
+	.name:hover {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.slug {
+		display: block;
+		font-size: 11.5px;
+		color: var(--faint);
+		margin-top: 2px;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	}
+	.num {
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+		font-weight: 550;
+		width: 120px;
+	}
+	.go {
+		text-align: right;
+		width: 80px;
+	}
+	.go a {
+		font-size: 12.5px;
+		font-weight: 550;
+		color: var(--muted);
+		padding: 4px 8px;
+		border-radius: var(--radius-xs);
+	}
+	.go a:hover {
+		background: var(--subtle);
+		color: var(--ink);
+	}
+	.empty {
+		border: 1px dashed var(--border-strong);
+		border-radius: var(--radius);
+		padding: 48px;
+		text-align: center;
+		color: var(--muted);
+		background: var(--surface);
+	}
+	.empty strong {
+		color: var(--ink);
+		display: block;
+		margin-bottom: 4px;
 	}
 </style>

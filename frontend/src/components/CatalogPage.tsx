@@ -1,9 +1,22 @@
 'use client';
 
 import React, { Suspense } from 'react';
-import { Header } from '@/components/Header';
-import { Footer } from '@/components/Footer';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { PageShell } from '@/components/PageShell';
 import { ProductGrid } from '@/components/ProductGrid';
+import { PageHeader } from '@/components/layout/PageHeader';
+import { ListingSkeleton } from '@/components/layout/ListingSkeleton';
+import {
+  ActiveFilterChips,
+  ListingFilters,
+  MobileFilters,
+} from '@/components/ListingFilters';
+import {
+  BrowseSort,
+  buildItemQuery,
+  currentBrowseSort,
+} from '@/lib/browse';
+import { fieldClass, labelClass, panelClass } from '@/lib/ui-classes';
 
 interface CatalogPageProps {
   title: string;
@@ -11,69 +24,98 @@ interface CatalogPageProps {
   queryKey?: 'category' | 'condition';
   queryValue?: string;
   searchQuery?: string;
-  sort?: 'recent' | 'price_asc' | 'price_desc';
+  sort?: BrowseSort;
 }
 
-export const CatalogPage: React.FC<CatalogPageProps> = ({
+export const CatalogPage: React.FC<CatalogPageProps> = (props) => {
+  return (
+    <PageShell>
+      <Suspense
+        fallback={
+          <>
+            <PageHeader title={props.title} subtitle={props.subtitle} />
+            <ListingSkeleton layout="tiles" />
+          </>
+        }
+      >
+        <CatalogBrowse {...props} />
+      </Suspense>
+    </PageShell>
+  );
+};
+
+function CatalogBrowse({
   title,
   subtitle,
   queryKey,
   queryValue,
   searchQuery,
-  sort,
-}) => {
-  const params = new URLSearchParams();
-  if (queryKey && queryValue) {
-    params.set(queryKey, queryValue);
-  }
-  if (searchQuery) {
-    params.set('search', searchQuery);
-  }
-  if (sort === 'price_asc') {
-    params.set('sort_by', 'price');
-    params.set('order', 'asc');
-  } else if (sort === 'price_desc') {
-    params.set('sort_by', 'price');
-    params.set('order', 'desc');
-  }
-
-  const query = params.toString() || undefined;
+  sort = 'recent',
+}: CatalogPageProps) {
+  const searchParams = useSearchParams();
+  const lockedCategory = queryKey === 'category' ? queryValue : undefined;
+  const query = buildItemQuery(searchParams, {
+    category: lockedCategory,
+    search: searchQuery,
+    sort,
+  });
 
   return (
-    <div className="min-h-screen bg-white">
-      <Header />
-
-      <main className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Hero */}
-        <div className="mb-12 text-center">
-          <h1 className="text-4xl font-serif font-bold text-gray-900 mb-4 tracking-tight">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="text-gray-500 max-w-2xl mx-auto">
-              {subtitle}
-            </p>
-          )}
+    <>
+      <PageHeader
+        title={title}
+        subtitle={subtitle}
+        action={<SortSelect fallback={sort} />}
+      />
+      <div className="flex items-start gap-6 lg:gap-8">
+        <aside className="hidden w-[19rem] shrink-0 lg:block">
+          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1 [scrollbar-width:thin]">
+            <div className={`${panelClass} bg-surface p-5`} aria-label="Filtros">
+              <ListingFilters lockedCategory={lockedCategory} />
+            </div>
+          </div>
+        </aside>
+        <div className="min-w-0 flex-1">
+          <MobileFilters lockedCategory={lockedCategory} />
+          <ActiveFilterChips lockedCategory={lockedCategory} />
+          <ProductGrid key={query} query={query} layout="tiles" />
         </div>
-
-        <Suspense fallback={<GridSkeleton />}>
-          <ProductGrid key={query} query={query} />
-        </Suspense>
-      </main>
-
-      <Footer />
-    </div>
-  );
-};
-
-const GridSkeleton: React.FC = () => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-10 gap-x-6">
-    {[...Array(8)].map((_, i) => (
-      <div key={i} className="animate-pulse">
-        <div className="bg-gray-200 aspect-[3/4] mb-4" />
-        <div className="h-4 bg-gray-200 w-3/4 mb-2" />
-        <div className="h-4 bg-gray-200 w-1/4" />
       </div>
-    ))}
-  </div>
-);
+    </>
+  );
+}
+
+function SortSelect({ fallback }: { fallback: BrowseSort }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const value = currentBrowseSort(searchParams, fallback);
+
+  const onChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const next = event.target.value as BrowseSort;
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'recent') {
+      params.set('sort_by', 'date');
+      params.set('order', 'desc');
+    } else if (next === 'price_asc') {
+      params.set('sort_by', 'price');
+      params.set('order', 'asc');
+    } else {
+      params.set('sort_by', 'price');
+      params.set('order', 'desc');
+    }
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+
+  return (
+    <label className="flex items-center gap-3">
+      <span className={`${labelClass} mb-0 shrink-0`}>Ordenar</span>
+      <select value={value} onChange={onChange} className={`${fieldClass} w-auto min-w-44`}>
+        <option value="recent">Mais recentes</option>
+        <option value="price_asc">Menor preço</option>
+        <option value="price_desc">Maior preço</option>
+      </select>
+    </label>
+  );
+}

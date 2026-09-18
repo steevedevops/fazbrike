@@ -1,0 +1,9 @@
+{{define "title"}}Código de verificação — Fazbrike{{end}}
+{{define "heading"}}Código de verificação{{end}}
+{{define "content"}}
+  <p style="margin:0 0 12px;">Olá <strong style="color:#111827;">{{.Name}}</strong>,</p>
+  <p style="margin:0 0 12px;">Seu código de verificação é:</p>
+  <p style="margin:0 0 16px;font-size:28px;font-weight:700;letter-spacing:4px;color:#111827;">{{.Code}}</p>
+  <p style="margin:0 0 12px;">Válido por <strong style="color:#111827;">{{.ValidHours}} horas</strong>.</p>
+  <p style="margin:0;">Se você não solicitou este código, ignore este e-mail.</p>
+{{end}}

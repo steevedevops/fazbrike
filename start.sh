@@ -20,8 +20,8 @@ fi
 echo "🔧 Iniciando o backend..."
 cd backend
 go mod tidy
-go run main.go &
-BACKEND_PID=$!
+./start-backend.sh
+BACKEND_PID=$(lsof -ti :8080 | head -1 || true)
 
 # Aguardar um pouco para o backend inicializar
 sleep 3
@@ -41,9 +41,9 @@ npm run dev &
 ADMIN_PID=$!
 
 echo "✅ Projeto iniciado com sucesso!"
-echo "📱 Frontend: http://localhost:3006"
+echo "📱 Frontend: http://localhost:3003"
 echo "🛠️  Admin:   http://localhost:5174"
-echo "🔧 Backend:  http://localhost:8090"
+echo "🔧 Backend:  http://localhost:8080"
 echo ""
 echo "💡 Para acessar o admin, o usuário deve ter role=admin."
 echo "   Promova um admin no boot do backend com:"
