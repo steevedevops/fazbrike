@@ -134,6 +134,18 @@ export const Header: React.FC = () => {
                 {link.label}
               </Link>
             ))}
+            <Link
+              href="/ofertas"
+              className={cx(
+                'type-meta lowercase tracking-tight pb-0.5 border-b-2 transition-colors',
+                pathname.startsWith('/ofertas')
+                  ? 'text-ink border-brand-500 font-medium'
+                  : 'text-muted border-transparent hover:text-ink'
+              )}
+              aria-current={pathname.startsWith('/ofertas') ? 'page' : undefined}
+            >
+              ofertas
+            </Link>
           </nav>
 
           <div
@@ -208,6 +220,7 @@ export const Header: React.FC = () => {
           <nav className="px-4 py-3 flex flex-col" aria-label="Menu mobile">
             {[
               ...headerCats,
+              { href: '/ofertas', label: 'ofertas de parceiros', slug: 'offers' },
               { href: '/vender', label: 'quero vender', slug: 'vender' },
               { href: '/messages', label: 'mensagens', slug: 'messages' },
               {

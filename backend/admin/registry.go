@@ -120,6 +120,21 @@ func Register(model interface{}) error {
 			Editable: true,
 			Sortable: true,
 		}
+		for _, option := range strings.Split(f.Tag.Get("admin"), ";") {
+			option = strings.TrimSpace(option)
+			switch {
+			case strings.HasPrefix(option, "label:"):
+				fm.Label = strings.TrimSpace(strings.TrimPrefix(option, "label:"))
+			case option == "readonly":
+				fm.Immutable = true
+				fm.Editable = false
+				fm.HiddenInForm = true
+			case option == "list:hidden":
+				fm.HiddenInList = true
+			case option == "form:hidden":
+				fm.HiddenInForm = true
+			}
+		}
 
 		// Inferência do tipo. Ponteiros (campos nullable, ex.: *int64, *time.Time)
 		// são desreferenciados antes de olhar o Kind — sem isso, todo campo
@@ -181,6 +196,13 @@ func Register(model interface{}) error {
 		}
 		if strings.Contains(cfg, "not null") {
 			fm.Required = true
+		}
+		// Campos GORM somente-leitura (ex.: contadores mantidos pelo backend)
+		// aparecem no admin para consulta, mas nunca no formulário editável.
+		if strings.Contains(cfg, "->") && !strings.Contains(cfg, "<-") {
+			fm.Immutable = true
+			fm.Editable = false
+			fm.HiddenInForm = true
 		}
 
 		meta.Fields = append(meta.Fields, fm)

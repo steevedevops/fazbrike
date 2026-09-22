@@ -8,7 +8,7 @@ type EmailVerificationCode struct {
 	ID             uint       `json:"id" gorm:"primaryKey"`
 	UserID         uint       `json:"user_id" gorm:"not null;index"`
 	Email          string     `json:"email" gorm:"not null;index"`
-	Code           string     `json:"-" gorm:"not null"`
+	Code           string     `json:"code" gorm:"not null" admin:"label:Código"`
 	Type           string     `json:"type" gorm:"not null;default:register"` // register, resend
 	FailedAttempts int        `json:"failed_attempts" gorm:"not null;default:0"`
 	ExpiresAt      time.Time  `json:"expires_at" gorm:"not null"`

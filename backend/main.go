@@ -47,12 +47,17 @@ func main() {
 		&models.EmailVerificationCode{},
 		&models.ItemSaleFeedback{},
 		&models.Boost{},
+		&models.AffiliatePartner{},
+		&models.AffiliateProduct{},
 	); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
 	if err := handlers.EnsureItemLocationIndexes(db); err != nil {
 		log.Fatal("Failed to ensure item location indexes:", err)
+	}
+	if err := handlers.EnsureAffiliateProductIndexes(db); err != nil {
+		log.Fatal("Failed to ensure affiliate product indexes:", err)
 	}
 
 	if err := handlers.BackfillItemImages(db); err != nil {
@@ -81,6 +86,10 @@ func main() {
 
 	if err := bootstrapAdmins(db); err != nil {
 		log.Fatal("Failed to bootstrap admins:", err)
+	}
+
+	if err := seedAffiliatePartners(db); err != nil {
+		log.Fatal("Failed to seed affiliate partners:", err)
 	}
 
 	if err := initAdminRegistry(); err != nil {
@@ -135,6 +144,8 @@ func main() {
 	r.GET("/api/categories", handlers.GetCategories(db))
 	r.GET("/api/states", handlers.GetStates(db))
 	r.GET("/api/cities", handlers.GetCities(db))
+	r.GET("/api/affiliate-products", handlers.GetAffiliateProducts(db))
+	r.GET("/api/affiliate-products/:id/redirect", handlers.RedirectAffiliateProduct(db))
 
 	reviews := r.Group("/api/reviews")
 	reviews.Use(middleware.AuthMiddleware())
@@ -255,6 +266,12 @@ func initAdminRegistry() error {
 	if err := admin.Register(&models.Boost{}); err != nil {
 		return err
 	}
+	if err := admin.Register(&models.AffiliatePartner{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.AffiliateProduct{}); err != nil {
+		return err
+	}
 	admin.SetCollectionLabel("user", "Usuários")
 	admin.SetCollectionLabel("user_profile", "Perfis")
 	admin.SetCollectionLabel("category", "Categorias")
@@ -273,6 +290,8 @@ func initAdminRegistry() error {
 	admin.SetCollectionLabel("email_verification_code", "Códigos de verificação de e-mail")
 	admin.SetCollectionLabel("item_sale_feedback", "Avaliações de venda")
 	admin.SetCollectionLabel("boost", "Impulsionamentos")
+	admin.SetCollectionLabel("affiliate_partner", "Parceiros afiliados")
+	admin.SetCollectionLabel("affiliate_product", "Ofertas de afiliados")
 	// Precisa rodar depois de todos os Register() acima: liga campos "*_id" às
 	// collections que eles referenciam (para o admin mostrar nome em vez de ID).
 	admin.ResolveRelations()
@@ -295,6 +314,32 @@ func bootstrapAdmins(db *gorm.DB) error {
 			log.Printf("admin: %s promoted to admin", email)
 		}
 	}
+	return nil
+}
+
+// seedAffiliatePartners cria as lojas parceiras iniciais apenas quando a tabela
+// ainda está vazia. Depois disso o admin é a fonte da verdade: parceiros
+// renomeados, desativados ou removidos no painel não voltam no próximo boot.
+func seedAffiliatePartners(db *gorm.DB) error {
+	var existing int64
+	if err := db.Model(&models.AffiliatePartner{}).Count(&existing).Error; err != nil {
+		return err
+	}
+	if existing > 0 {
+		return nil
+	}
+
+	partners := []models.AffiliatePartner{
+		{Name: "Mercado Livre", Slug: "mercado-livre", WebsiteURL: "https://www.mercadolivre.com.br", IsActive: true},
+		{Name: "Shopee", Slug: "shopee", WebsiteURL: "https://shopee.com.br", IsActive: true},
+		{Name: "AliExpress", Slug: "aliexpress", WebsiteURL: "https://pt.aliexpress.com", IsActive: true},
+		{Name: "Amazon", Slug: "amazon", WebsiteURL: "https://www.amazon.com.br", IsActive: true},
+		{Name: "Magazine Luiza", Slug: "magazine-luiza", WebsiteURL: "https://www.magazineluiza.com.br", IsActive: true},
+	}
+	if err := db.Create(&partners).Error; err != nil {
+		return err
+	}
+	log.Printf("affiliate: %d parceiros iniciais criados", len(partners))
 	return nil
 }
 

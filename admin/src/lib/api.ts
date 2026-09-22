@@ -1,7 +1,7 @@
-import { PUBLIC_API_URL } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import type { MetaResponse, ListResponse, User, VisitsStatsResponse } from './types';
 
-const BASE = (PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/$/, '');
+const BASE = (env.PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/$/, '');
 const TOKEN_KEY = 'fazbrike_admin_token';
 
 export class ApiError extends Error {

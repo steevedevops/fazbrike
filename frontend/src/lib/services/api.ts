@@ -204,6 +204,25 @@ export interface Item {
   is_favorited?: boolean;
 }
 
+export interface AffiliatePartner {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface AffiliateProduct {
+  id: number;
+  title: string;
+  description: string;
+  price: number;
+  original_price?: number | null;
+  image_url: string;
+  category?: string;
+  coupon_code?: string;
+  is_featured: boolean;
+  partner: AffiliatePartner;
+}
+
 export interface ItemComment {
   id: number;
   item_id: number;
@@ -592,6 +611,10 @@ export function resolveImageUrl(imageUrl?: string | null): string {
   }
 
   return `${baseUrl}${imageUrl}`;
+}
+
+export function affiliateRedirectUrl(productId: number): string {
+  return `${API_BASE_URL.replace(/\/$/, '')}/affiliate-products/${productId}/redirect`;
 }
 
 // Instância singleton do serviço

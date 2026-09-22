@@ -14,6 +14,7 @@ const columns = [
       { href: '/novidades', label: 'Novidades' },
       { href: '/marcas', label: 'Marcas' },
       { href: '/promocoes', label: 'Promoções' },
+      { href: '/ofertas', label: 'Ofertas de parceiros' },
     ],
   },
   {

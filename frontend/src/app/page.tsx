@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { PageShell } from '@/components/PageShell';
 import { HomeRail } from '@/components/HomeRail';
+import { AffiliateProductRail } from '@/components/AffiliateProductRail';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { CATEGORIES } from '@/lib/catalog';
 import {
@@ -121,6 +122,8 @@ export default function Home() {
         linkLabel="Ver todas"
         query=""
       />
+
+      <AffiliateProductRail />
 
       <HomeRail
         title="Eletrônicos"
