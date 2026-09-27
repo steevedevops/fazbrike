@@ -24,6 +24,7 @@ var defaults = map[string]string{
 	"B2_BUCKET_NAME":                    "",
 	"B2_ENDPOINT":                       "https://s3.us-east-005.backblazeb2.com",
 	"B2_REGION":                         "us-east-005",
+	"ITEM_MODERATION_ENABLED":           "false",
 }
 
 // Get returns a configuration value with priority: DB → env → hardcoded default.
@@ -52,4 +53,10 @@ func DefaultKeys() map[string]string {
 		out[k] = v
 	}
 	return out
+}
+
+// ItemModerationEnabled define se anúncios novos ou alterados precisam de
+// aprovação administrativa antes de aparecerem publicamente.
+func ItemModerationEnabled() bool {
+	return strings.EqualFold(strings.TrimSpace(Get("ITEM_MODERATION_ENABLED")), "true")
 }

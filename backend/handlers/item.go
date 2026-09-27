@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fazbrike-backend/config"
 	"fazbrike-backend/models"
 	"math"
 	"net/http"
@@ -53,6 +54,9 @@ func CreateItem(db *gorm.DB) gin.HandlerFunc {
 		}
 		if item.ListingType == "" {
 			item.ListingType = "item"
+		}
+		if config.ItemModerationEnabled() {
+			item.Status = "pending"
 		}
 		if item.Title == "" || item.Description == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Título e descrição são obrigatórios"})
@@ -197,6 +201,10 @@ func UploadItemImage(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		if err := ApplyItemModerationAfterChange(db, item.ID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao enviar anúncio para análise"})
+			return
+		}
 
 		c.JSON(http.StatusOK, gin.H{"image_url": imageURL, "image": img})
 	}
@@ -299,8 +307,13 @@ func UpdateItem(db *gorm.DB) gin.HandlerFunc {
 		}
 		item.UpdatedAt = time.Now()
 
-		if err := db.Save(&item).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao atualizar item"})
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Save(&item).Error; err != nil {
+				return err
+			}
+			return ApplyItemModerationAfterChange(tx, item.ID)
+		}); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao enviar anúncio para análise"})
 			return
 		}
 
@@ -355,6 +368,10 @@ func UpdateItemStatus(db *gorm.DB) gin.HandlerFunc {
 		}
 		if item.UserID != userID.(uint) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Você não pode alterar este anúncio"})
+			return
+		}
+		if item.Status == "rejected" || (config.ItemModerationEnabled() && item.Status == "pending") {
+			c.JSON(http.StatusConflict, gin.H{"error": "Corrija o anúncio rejeitado ou aguarde a aprovação antes de alterar seu status"})
 			return
 		}
 		item.Status = status

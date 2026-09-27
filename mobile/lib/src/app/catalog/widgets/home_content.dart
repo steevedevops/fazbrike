@@ -2,178 +2,234 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fazbrike/src/app/catalog/controllers/catalog_controller.dart';
+import 'package:fazbrike/src/app/catalog/models/catalog_models.dart';
+import 'package:fazbrike/src/app/catalog/screens/categories_screen.dart';
+import 'package:fazbrike/src/app/catalog/widgets/category_photo_card.dart';
+import 'package:fazbrike/src/app/items/models/item_model.dart';
+import 'package:fazbrike/src/app/promotions/widgets/promotion_slider.dart';
+import 'package:fazbrike/src/shared/models/paginator_model.dart';
 import 'package:fazbrike/src/shared/widgets/error_view.dart';
-import 'package:fazbrike/src/shared/widgets/loading_view.dart';
-import 'package:fazbrike/src/shared/widgets/category_card.dart';
-import 'package:fazbrike/src/shared/widgets/product_card.dart';
+import 'package:fazbrike/src/shared/widgets/section_header.dart';
+import 'package:fazbrike/src/shared/widgets/showcase_card.dart';
 import 'package:fazbrike/src/theme/app_colors.dart';
 import 'package:fazbrike/src/theme/app_radius.dart';
 import 'package:fazbrike/src/theme/app_spacing.dart';
 
+/// Corpo da home: destaque, categorias e vitrines em carrossel. Rola dentro do
+/// `CustomScrollView` da tela, por isso não traz scroll próprio.
 class HomeContent extends ConsumerWidget {
   const HomeContent({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categories = ref.watch(categoriesProvider);
-    final items = ref.watch(catalogListProvider);
-    return RefreshIndicator(
-      onRefresh: () async {
-        await Future.wait([
-          ref.read(categoriesProvider.notifier).list(),
-          ref.read(catalogListProvider.notifier).list(query: {'sort_by': 'date', 'order': 'desc'}),
-        ]);
-      },
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-        children: [
-          _Hero(onSearch: (value) => context.push('/catalogo?search=${Uri.encodeQueryComponent(value)}')),
-          _SectionTitle(
-            title: 'Categorias',
-            subtitle: 'Escolha uma categoria para começar',
-            actionLabel: 'Ver todas',
-            onAction: () => context.push('/catalogo'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.md),
+        const PromotionSlider(fallback: HomeHighlight()),
+        const _CategoryRail(),
+        _ItemRail(
+          title: 'Novidades',
+          subtitle: 'Acabaram de chegar na vitrine',
+          provider: homeLatestProvider,
+          destination: '/novidades',
+        ),
+        _ItemRail(
+          title: 'Menores preços',
+          subtitle: 'Oportunidades a partir de quanto custa menos',
+          provider: homeDealsProvider,
+          destination: '/promocoes',
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.xxl),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => context.push('/catalogo'),
+              child: const Text('Ver todos os anúncios'),
+            ),
           ),
-          categories.when(
-            loading: () => const SizedBox(height: 160, child: LoadingView()),
-            error: (error, _) => ErrorView(message: error.toString(), onRetry: () => ref.read(categoriesProvider.notifier).list()),
-            data: (page) {
-              // A home do site mostra 8 categorias; o resto fica em "Ver todas".
-              final visible = page.results.take(8).toList();
-              return GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: AppSpacing.sm,
-                  mainAxisSpacing: AppSpacing.sm,
-                  mainAxisExtent: 68,
-                ),
-                itemCount: visible.length,
-                itemBuilder: (_, index) {
-                  final category = visible[index];
-                  return CategoryCard(
-                    slug: category.slug,
-                    iconSlug: category.icon,
-                    name: category.name,
-                    onTap: () => context.push('/catalogo?category=${Uri.encodeQueryComponent(category.slug)}&title=${Uri.encodeQueryComponent(category.name)}'),
-                  );
-                },
-              );
-            },
-          ),
-          const _SectionTitle(title: 'Novidades', subtitle: 'Acabaram de chegar na vitrine'),
-          items.when(
-            loading: () => const SizedBox(height: 240, child: LoadingView()),
-            error: (error, _) => ErrorView(message: error.toString(), onRetry: () => ref.read(catalogListProvider.notifier).retry()),
-            data: (page) => page.results.isEmpty
-                ? const Padding(padding: EdgeInsets.all(AppSpacing.xl), child: Text('Nenhum anúncio disponível agora.'))
-                : GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: .68,
-                      crossAxisSpacing: AppSpacing.sm,
-                      mainAxisSpacing: AppSpacing.sm,
-                    ),
-                    itemCount: page.results.length > 8 ? 8 : page.results.length,
-                    itemBuilder: (_, index) => ProductCard(item: page.results[index]),
-                  ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-class _Hero extends StatefulWidget {
-  const _Hero({required this.onSearch});
-  final ValueChanged<String> onSearch;
-  @override
-  State<_Hero> createState() => _HeroState();
-}
+/// Destaque padrão quando não há campanha cadastrada no admin — a home nunca
+/// abre com um buraco no lugar do banner.
+class HomeHighlight extends StatelessWidget {
+  const HomeHighlight({super.key});
 
-class _HeroState extends State<_Hero> {
-  final controller = TextEditingController();
-  @override
-  void dispose() { controller.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Container(
-      margin: const EdgeInsets.all(AppSpacing.lg),
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.ink,
-        borderRadius: BorderRadius.circular(AppRadius.card),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        decoration: BoxDecoration(
+          color: AppColors.ink,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Compre. Venda. Conecte.',
+              style: textTheme.headlineSmall?.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Anuncie o que você não usa mais e negocie direto com quem compra.',
+              style: textTheme.bodySmall?.copyWith(color: Colors.white.withValues(alpha: .8)),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            FilledButton(
+              onPressed: () => context.push('/vender'),
+              child: const Text('Vender um item'),
+            ),
+          ],
+        ),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(
-          'Compre. Venda. Conecte.',
-          style: textTheme.headlineMedium?.copyWith(color: Colors.white),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Text(
-          'Descubra produtos e venda o que você não usa mais.',
-          style: textTheme.bodyLarge?.copyWith(color: Colors.white.withValues(alpha: .8)),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        // TextField comum em vez de SearchBar: o SearchBar tem tema próprio e
-        // ignora o inputDecorationTheme, saindo do padrão de input do site.
-        TextField(
-          controller: controller,
-          textInputAction: TextInputAction.search,
-          onSubmitted: widget.onSearch,
-          decoration: const InputDecoration(
-            hintText: 'O que você procura?',
-            prefixIcon: Icon(Icons.search),
-          ),
-        ),
-      ]),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-    required this.subtitle,
-    this.actionLabel,
-    this.onAction,
-  });
-  final String title;
-  final String subtitle;
-  final String? actionLabel;
-  final VoidCallback? onAction;
+class _CategoryRail extends ConsumerWidget {
+  const _CategoryRail();
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.md),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: Theme.of(context).textTheme.titleLarge),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-              ]),
-            ),
-            if (actionLabel != null && onAction != null)
-              TextButton(
-                onPressed: onAction,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.muted,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                  minimumSize: const Size(0, 36),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  textStyle: Theme.of(context).textTheme.bodySmall,
-                ),
-                child: Text(actionLabel!),
-              ),
-          ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categories = ref.watch(categoriesProvider);
+    final results = categories.asData?.value.results ?? const <CategoryModel>[];
+    if (results.isEmpty) return const SizedBox.shrink();
+
+    final visible = results.take(10).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: 'Explorar por categoria',
+          subtitle: 'Escolha por onde começar',
+          actionLabel: 'ver todas',
+          onAction: () => context.push(CategoriesScreen.path),
         ),
-      );
+        SizedBox(
+          // Foto (104) + respiro + duas linhas de rótulo.
+          height: 164,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            itemCount: visible.length,
+            separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+            itemBuilder: (_, index) {
+              final category = visible[index];
+              return CategoryPhotoCard(
+                width: 104,
+                slug: category.icon.isNotEmpty ? category.icon : category.slug,
+                name: category.name,
+                onTap: () => context.push(
+                  '/catalogo?category=${Uri.encodeQueryComponent(category.slug)}'
+                  '&title=${Uri.encodeQueryComponent(category.name)}',
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ItemRail extends ConsumerWidget {
+  const _ItemRail({
+    required this.title,
+    required this.subtitle,
+    required this.provider,
+    required this.destination,
+  });
+
+  final String title;
+  final String subtitle;
+  final StateNotifierProvider<HomeFeedNotifier, AsyncValue<PaginatorModel<ItemModel>>> provider;
+  final String destination;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final feed = ref.watch(provider);
+
+    return feed.when(
+      loading: () => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(title: title, subtitle: subtitle),
+          const _RailSkeleton(),
+        ],
+      ),
+      error: (error, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(title: title, subtitle: subtitle),
+          SizedBox(
+            height: 200,
+            child: ErrorView(
+              message: error.toString(),
+              onRetry: () => ref.read(provider.notifier).list(),
+            ),
+          ),
+        ],
+      ),
+      data: (page) {
+        if (page.results.isEmpty) return const SizedBox.shrink();
+        final visible = page.results.take(10).toList();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionHeader(
+              title: title,
+              subtitle: subtitle,
+              actionLabel: 'ver todos',
+              onAction: () => context.push(destination),
+            ),
+            SizedBox(
+              height: 262,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                itemCount: visible.length,
+                separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+                itemBuilder: (_, index) => ShowcaseCard(item: visible[index]),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RailSkeleton extends StatelessWidget {
+  const _RailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).inputDecorationTheme.fillColor ??
+        Theme.of(context).colorScheme.surfaceContainerHighest;
+    return SizedBox(
+      height: 262,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        itemCount: 3,
+        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.md),
+        itemBuilder: (_, __) => Container(
+          width: 158,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(AppRadius.card),
+          ),
+        ),
+      ),
+    );
+  }
 }

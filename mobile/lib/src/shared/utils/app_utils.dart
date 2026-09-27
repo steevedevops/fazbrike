@@ -12,6 +12,18 @@ double? parsePrice(String raw) {
 }
 
 String formatDate(DateTime value) => DateFormat('dd/MM/yyyy', 'pt_BR').format(value.toLocal());
+
+/// Tempo relativo curto ("agora", "5 min", "3 h", "2 d") para listas densas
+/// como a central de notificações. Acima de uma semana volta para a data.
+String formatRelativeTime(DateTime value) {
+  final elapsed = DateTime.now().difference(value.toLocal());
+  if (elapsed.inMinutes < 1) return 'agora';
+  if (elapsed.inMinutes < 60) return '${elapsed.inMinutes} min';
+  if (elapsed.inHours < 24) return '${elapsed.inHours} h';
+  if (elapsed.inDays < 7) return '${elapsed.inDays} d';
+  return formatDate(value);
+}
+
 String formatDateTime(DateTime value) => DateFormat('dd/MM/yyyy HH:mm', 'pt_BR').format(value.toLocal());
 
 String categoryLabel(String slug) => const {

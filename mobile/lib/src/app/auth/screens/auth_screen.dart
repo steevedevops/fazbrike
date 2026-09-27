@@ -6,8 +6,9 @@ class AuthScreen extends StatelessWidget {
   static const path = '/login';
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Fazbrike')),
-        body: const SafeArea(child: AuthPanel()),
+  Widget build(BuildContext context) => const Scaffold(
+        // Sem AppBar: como no site, a saída é o atalho "voltar à loja" dentro
+        // do próprio conteúdo.
+        body: SafeArea(child: AuthPanel()),
       );
 }

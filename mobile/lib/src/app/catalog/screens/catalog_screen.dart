@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fazbrike/src/app/catalog/controllers/catalog_controller.dart';
 import 'package:fazbrike/src/app/catalog/widgets/catalog_content.dart';
 import 'package:fazbrike/src/app/catalog/widgets/catalog_filter_sheet.dart';
+import 'package:fazbrike/src/app/catalog/widgets/category_chips.dart';
+import 'package:fazbrike/src/app/catalog/models/catalog_models.dart';
 import 'package:fazbrike/src/theme/app_spacing.dart';
 
 class CatalogScreen extends ConsumerStatefulWidget {
@@ -58,6 +60,18 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
     await ref.read(catalogListProvider.notifier).list(query: filters);
   }
 
+  /// Filtro rápido pelo trilho de categorias, sem abrir a folha de filtros.
+  Future<void> _selectCategory(CategoryModel? category) async {
+    setState(() {
+      if (category == null) {
+        filters.remove('category');
+      } else {
+        filters['category'] = category.slug;
+      }
+    });
+    await ref.read(catalogListProvider.notifier).list(query: filters);
+  }
+
   Future<void> _openFilters() async {
     final next = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
@@ -103,6 +117,11 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
               ),
             ),
           ),
+          CategoryChips(
+            selectedSlug: filters['category']?.toString() ?? '',
+            onSelected: _selectCategory,
+          ),
+          const SizedBox(height: AppSpacing.xs),
           Expanded(child: CatalogContent(onRetry: () => ref.read(catalogListProvider.notifier).retry())),
         ]),
       );

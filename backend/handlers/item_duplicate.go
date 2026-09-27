@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fazbrike-backend/config"
 	"fazbrike-backend/models"
 	"net/http"
 	"time"
@@ -15,6 +16,10 @@ func DuplicateItem(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		source, ok := loadOwnedItem(db, c)
 		if !ok {
+			return
+		}
+		if source.Status == "rejected" {
+			c.JSON(http.StatusConflict, gin.H{"error": "Corrija o anúncio rejeitado antes de duplicá-lo"})
 			return
 		}
 
@@ -40,6 +45,9 @@ func DuplicateItem(db *gorm.DB) gin.HandlerFunc {
 			Status:      "active",
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
+		}
+		if config.ItemModerationEnabled() {
+			clone.Status = "pending"
 		}
 
 		if err := db.Transaction(func(tx *gorm.DB) error {

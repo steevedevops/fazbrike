@@ -12,7 +12,7 @@ import { ProductDetailClient } from '@/components/product/ProductDetailClient';
 // this naturally 404s here too instead of the old client-only "not found" UI.
 async function getItem(id: string): Promise<Item | null> {
   try {
-    const res = await fetch(`${API_URL}/items/${id}`, { next: { revalidate: 60 } });
+		const res = await fetch(`${API_URL}/items/${id}`, { cache: 'no-store' });
     if (!res.ok) return null;
     return (await res.json()) as Item;
   } catch {

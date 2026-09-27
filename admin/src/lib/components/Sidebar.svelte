@@ -2,7 +2,9 @@
 	import { page } from '$app/state';
 	import { currentUser, logout } from '$lib/auth';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import type { CollectionMeta } from '$lib/types';
+	import { loadModerationSummary, moderationSummary } from '$lib/moderation';
 
 	let { collections }: { collections: CollectionMeta[] } = $props();
 
@@ -20,9 +22,17 @@
 	}
 
 	const isOverview = $derived(page.url.pathname === '/');
+	const isModeration = $derived(page.url.pathname.startsWith('/moderation'));
 	const isVisits = $derived(page.url.pathname.startsWith('/visits'));
 	const isBackup = $derived(page.url.pathname.startsWith('/backup'));
 	const isSettings = $derived(page.url.pathname.startsWith('/settings'));
+
+	onMount(() => {
+		const refresh = () => void loadModerationSummary().catch(() => undefined);
+		refresh();
+		const timer = window.setInterval(refresh, 30000);
+		return () => window.clearInterval(timer);
+	});
 </script>
 
 <aside class="sidebar">
@@ -40,6 +50,18 @@
 				<path d="M2 2.5h5v5H2v-5Zm7 0h5v5H9v-5ZM2 9.5h5v5H2v-5Zm7 0h5v5H9v-5Z" stroke="currentColor" stroke-width="1.25" />
 			</svg>
 			Visão geral
+		</a>
+		<a class="nav-item" class:active={isModeration} href="/moderation">
+			<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+				<path d="M3.5 6.5a4.5 4.5 0 0 1 9 0v2.2l1.2 2.1H2.3l1.2-2.1V6.5Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" />
+				<path d="M6.5 12.8a1.7 1.7 0 0 0 3 0" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
+			</svg>
+			<span>Moderação</span>
+			{#if $moderationSummary.total > 0}
+				<span class="alert-count" aria-label={`${$moderationSummary.total} alertas pendentes`}>
+					{$moderationSummary.total > 99 ? '99+' : $moderationSummary.total}
+				</span>
+			{/if}
 		</a>
 		<a class="nav-item" class:active={isVisits} href="/visits">
 			<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -198,6 +220,21 @@
 		background: var(--subtle);
 		color: var(--ink);
 		font-weight: 600;
+	}
+	.alert-count {
+		margin-left: auto;
+		min-width: 20px;
+		height: 20px;
+		padding: 0 6px;
+		border-radius: 999px;
+		background: var(--danger);
+		color: #fff;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 10px;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
 	}
 
 	.collections {

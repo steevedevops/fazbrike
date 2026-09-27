@@ -43,6 +43,49 @@ class CatalogListNotifier
   }
 }
 
+/// Vitrines da home. Cada uma tem provider próprio para não disputar estado
+/// com o [catalogListProvider], que guarda a busca/filtros da tela Explorar —
+/// antes a home reaproveitava aquela lista e voltava do catálogo já filtrada.
+final homeLatestProvider = StateNotifierProvider<HomeFeedNotifier,
+        AsyncValue<PaginatorModel<ItemModel>>>(
+    (ref) => HomeFeedNotifier(ref, const {'sort_by': 'date', 'order': 'desc'}));
+
+final homeDealsProvider = StateNotifierProvider<HomeFeedNotifier,
+        AsyncValue<PaginatorModel<ItemModel>>>(
+    (ref) => HomeFeedNotifier(ref, const {'sort_by': 'price', 'order': 'asc'}));
+
+class HomeFeedNotifier extends StateNotifier<AsyncValue<PaginatorModel<ItemModel>>> {
+  HomeFeedNotifier(this.ref, this.query) : super(const AsyncValue.loading());
+  final Ref ref;
+  final Map<String, dynamic> query;
+
+  Future<void> list({int? page, bool paginate = false}) async {
+    state = const AsyncValue.loading();
+    try {
+      final response = await ref.read(apiServicesProvider).get('/items', query: query);
+      state = AsyncValue.data(PaginatorModel(results: ItemModel.fromJsonList(response.data)));
+    } catch (error, stack) {
+      state = AsyncValue.error(error, stack);
+    }
+  }
+
+  void update(ItemModel item) {
+    state.whenData((paginator) {
+      state = AsyncValue.data(paginator.copyWith(
+        results: paginator.results.map((value) => value.id == item.id ? item : value).toList(),
+      ));
+    });
+  }
+
+  void remove(int id) {
+    state.whenData((paginator) {
+      state = AsyncValue.data(paginator.copyWith(
+        results: paginator.results.where((value) => value.id != id).toList(),
+      ));
+    });
+  }
+}
+
 final categoriesProvider = StateNotifierProvider<CategoriesNotifier,
     AsyncValue<PaginatorModel<CategoryModel>>>((ref) => CategoriesNotifier(ref));
 

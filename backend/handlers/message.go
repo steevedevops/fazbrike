@@ -169,8 +169,34 @@ func SendMessage(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
+		notifyNewMessage(db, message)
+
 		c.JSON(http.StatusCreated, message)
 	}
+}
+
+// notifyNewMessage avisa o destinatário na central de notificações. Usa
+// NotifyMessage para agrupar: uma conversa vira uma linha, não uma por
+// mensagem enviada.
+func notifyNewMessage(db *gorm.DB, message models.Message) {
+	var sender models.User
+	if err := db.Select("id", "name").First(&sender, message.SenderID).Error; err != nil {
+		return
+	}
+	title := "Nova mensagem de " + sender.Name
+	if sender.Name == "" {
+		title = "Nova mensagem"
+	}
+	actorID := message.SenderID
+	NotifyMessage(db, models.Notification{
+		UserID:  message.ReceiverID,
+		Type:    models.NotificationTypeMessage,
+		Title:   title,
+		Body:    messagePreviewText(message),
+		Link:    "/messages",
+		ActorID: &actorID,
+		ItemID:  message.ItemID,
+	})
 }
 
 // allowedAttachmentMIME whitelists chat attachments: photos + light documents.

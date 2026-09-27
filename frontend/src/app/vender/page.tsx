@@ -230,7 +230,7 @@ export default function VenderPage() {
         );
       }
 
-      router.push(`/produto/${newItem.id}`);
+      router.push(newItem.status === 'pending' ? '/perfil' : `/produto/${newItem.id}`);
     } catch (err) {
       const message =
         err && typeof err === 'object' && 'message' in err

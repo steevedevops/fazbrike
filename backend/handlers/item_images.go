@@ -149,6 +149,10 @@ func UploadItemImages(db *gorm.DB) gin.HandlerFunc {
 			}
 			created = append(created, *img)
 		}
+		if err := ApplyItemModerationAfterChange(db, item.ID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao enviar anúncio para análise"})
+			return
+		}
 
 		var cover models.Item
 		_ = db.Select("image_url").First(&cover, item.ID)
@@ -182,6 +186,10 @@ func DeleteItemImage(db *gorm.DB) gin.HandlerFunc {
 		}
 		if err := syncItemCover(db, item.ID); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao atualizar capa"})
+			return
+		}
+		if err := ApplyItemModerationAfterChange(db, item.ID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao enviar anúncio para análise"})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"ok": true})

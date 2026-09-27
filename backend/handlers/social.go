@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fazbrike-backend/models"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,6 +35,13 @@ func FollowUser(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Usuário não encontrado"})
 			return
 		}
+		var already int64
+		if err := db.Model(&models.Follow{}).
+			Where("follower_id = ? AND following_id = ?", followerID, targetID).
+			Count(&already).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao seguir"})
+			return
+		}
 		follow := models.Follow{
 			FollowerID:  followerID,
 			FollowingID: uint(targetID),
@@ -42,6 +50,18 @@ func FollowUser(db *gorm.DB) gin.HandlerFunc {
 			FirstOrCreate(&follow).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao seguir"})
 			return
+		}
+		// Só avisa quando o vínculo é novo: refollow não gera notificação nova.
+		if already == 0 {
+			actor := followerID
+			NotifyUser(db, models.Notification{
+				UserID:  uint(targetID),
+				Type:    models.NotificationTypeFollow,
+				Title:   actorDisplayName(db, followerID) + " começou a seguir você",
+				Body:    "Veja o perfil e os anúncios dessa pessoa.",
+				Link:    fmt.Sprintf("/usuario/%d", followerID),
+				ActorID: &actor,
+			})
 		}
 		c.JSON(http.StatusOK, gin.H{"following": true})
 	}
@@ -218,6 +238,20 @@ func CreateReview(db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 		_ = db.Preload("Reviewer").First(&review, review.ID)
+		actor := reviewerID
+		body := strings.TrimSpace(review.Comment)
+		if body == "" {
+			body = fmt.Sprintf("Nota %d de 5", review.Rating)
+		}
+		NotifyUser(db, models.Notification{
+			UserID:  review.RevieweeID,
+			Type:    models.NotificationTypeReview,
+			Title:   actorDisplayName(db, reviewerID) + " avaliou você",
+			Body:    body,
+			Link:    fmt.Sprintf("/usuario/%d", review.RevieweeID),
+			ActorID: &actor,
+			ItemID:  review.ItemID,
+		})
 		c.JSON(http.StatusCreated, toPublicReview(review, buildReviewAvatars(db, []uint{reviewerID})))
 	}
 }
@@ -422,10 +456,21 @@ func FavoriteItem(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Item não encontrado"})
 			return
 		}
+		var already int64
+		if err := db.Model(&models.ItemFavorite{}).
+			Where("user_id = ? AND item_id = ?", uid, itemID).
+			Count(&already).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao favoritar"})
+			return
+		}
 		fav := models.ItemFavorite{UserID: uid, ItemID: uint(itemID)}
 		if err := db.Where("user_id = ? AND item_id = ?", uid, itemID).FirstOrCreate(&fav).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao favoritar"})
 			return
+		}
+		// Refavoritar o mesmo anúncio não repete o aviso para o vendedor.
+		if already == 0 {
+			notifyItemOwner(db, uint(itemID), uid, models.NotificationTypeFavorite, "salvou seu anúncio nos favoritos", item.Title)
 		}
 		var count int64
 		_ = db.Model(&models.ItemFavorite{}).Where("item_id = ?", itemID).Count(&count).Error

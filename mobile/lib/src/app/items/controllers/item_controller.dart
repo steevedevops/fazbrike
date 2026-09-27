@@ -179,6 +179,10 @@ class ItemFormNotifier extends StateNotifier<AsyncValue<String>> {
       favoritesCount: asInt(data['favorites_count']),
     );
     ref.read(catalogListProvider.notifier).update(updated);
+    // As vitrines da home têm estado próprio: sem isso o coração só mudava de
+    // cor na tela Explorar.
+    ref.read(homeLatestProvider.notifier).update(updated);
+    ref.read(homeDealsProvider.notifier).update(updated);
     ref.read(itemDetailProvider(item.id).notifier).replace(updated);
     return updated;
   }

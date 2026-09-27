@@ -180,6 +180,7 @@ func CreateItemComment(db *gorm.DB) gin.HandlerFunc {
 		}
 		_ = db.Preload("User").First(&comment, comment.ID)
 		SanitizePublicUser(&comment.User)
+		notifyItemOwner(db, itemID, uid, models.NotificationTypeComment, "comentou no seu anúncio", content)
 		c.JSON(http.StatusCreated, itemCommentResponse{
 			ID:        comment.ID,
 			ItemID:    comment.ItemID,

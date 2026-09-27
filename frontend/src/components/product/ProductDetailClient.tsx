@@ -10,12 +10,14 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   Item,
   ItemComment,
+  ItemReportReason,
   apiService,
   createItemComment,
   deleteItemComment,
   favoriteItem,
   fetchItemComments,
   registerItemView,
+  reportItem,
   resolveImageUrl,
   unfavoriteItem,
 } from '@/lib/services/api';
@@ -110,6 +112,12 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
   const [commentSending, setCommentSending] = useState(false);
   const [commentError, setCommentError] = useState('');
   const [favoriteSaving, setFavoriteSaving] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<ItemReportReason>('misleading');
+  const [reportDetails, setReportDetails] = useState('');
+  const [reporting, setReporting] = useState(false);
+  const [reportError, setReportError] = useState('');
+  const [reportSuccess, setReportSuccess] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -220,6 +228,35 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
       alert(msg || 'Não foi possível atualizar seus favoritos.');
     } finally {
       setFavoriteSaving(false);
+    }
+  };
+
+  const openReport = () => {
+    if (!isAuthenticated) {
+      router.push('/login');
+      return;
+    }
+    setReportError('');
+    setReportOpen(true);
+  };
+
+  const handleReport = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setReporting(true);
+    setReportError('');
+    try {
+      const response = await reportItem(item.id, reportReason, reportDetails);
+      setReportSuccess(response.message);
+      setReportOpen(false);
+      setReportDetails('');
+    } catch (err) {
+      const message =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message?: unknown }).message)
+          : '';
+      setReportError(message || 'Não foi possível enviar a denúncia.');
+    } finally {
+      setReporting(false);
     }
   };
 
@@ -434,6 +471,15 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M16 6l-4-4-4 4M12 2v14" />
               </svg>
             </button>
+            {!isOwner ? (
+              <button
+                type="button"
+                onClick={openReport}
+                className="inline-flex h-9 items-center justify-center rounded-pill border border-[color:var(--color-border)] px-3 type-meta font-medium text-muted hover:text-danger hover:bg-subtle"
+              >
+                Denunciar
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -785,6 +831,71 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
           </section>
         ) : null}
       </div>
+
+      {reportOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target && !reporting) setReportOpen(false);
+          }}
+        >
+          <div className={`${panelClass} w-full max-w-lg bg-surface p-6`} role="dialog" aria-modal="true" aria-labelledby="report-title">
+            <h2 id="report-title" className={sectionTitleClass}>Denunciar anúncio</h2>
+            <p className={`${metaClass} mt-2`}>
+              Conte o que há de errado. A denúncia será analisada pela equipe do Fazbrike.
+            </p>
+            <form onSubmit={handleReport} className="mt-5 space-y-4">
+              <div>
+                <label htmlFor="report-reason" className={labelClass}>Motivo</label>
+                <select
+                  id="report-reason"
+                  value={reportReason}
+                  onChange={(event) => setReportReason(event.target.value as ItemReportReason)}
+                  className={fieldClass}
+                >
+                  <option value="prohibited_item">Produto proibido ou ilegal</option>
+                  <option value="fraud">Suspeita de fraude</option>
+                  <option value="misleading">Informações enganosas</option>
+                  <option value="duplicate">Anúncio duplicado</option>
+                  <option value="offensive">Conteúdo ofensivo</option>
+                  <option value="other">Outro motivo</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="report-details" className={labelClass}>Detalhes (opcional)</label>
+                <textarea
+                  id="report-details"
+                  rows={4}
+                  maxLength={1000}
+                  required={reportReason === 'other'}
+                  value={reportDetails}
+                  onChange={(event) => setReportDetails(event.target.value)}
+                  className={fieldClass}
+                  placeholder="Descreva o problema para ajudar na análise"
+                />
+                <p className={`${metaClass} mt-1 text-right`}>{reportDetails.length} / 1000</p>
+              </div>
+              {reportError ? <p className="type-meta text-danger" role="alert">{reportError}</p> : null}
+              <div className="flex justify-end gap-3">
+                <button type="button" className={btnSecondaryClass} disabled={reporting} onClick={() => setReportOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className={btnDangerClass} disabled={reporting}>
+                  {reporting ? 'Enviando...' : 'Enviar denúncia'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {reportSuccess ? (
+        <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-control bg-ink px-4 py-3 type-meta text-white shadow-pop" role="status">
+          {reportSuccess}
+          <button type="button" className="ml-3 underline" onClick={() => setReportSuccess('')}>Fechar</button>
+        </div>
+      ) : null}
     </PageShell>
   );
 }

@@ -193,6 +193,8 @@ export interface Item {
   condition?: string;
   attrs?: string;
   status?: string;
+  rejection_reason?: string;
+  moderated_at?: string | null;
   sold_at?: string | null;
   user_id: number;
   user?: ItemSeller;
@@ -247,6 +249,38 @@ export interface ApiCategory {
   sort_order?: number;
   is_active?: boolean;
   icon?: string;
+}
+
+export interface NotificationActor {
+  id: number;
+  name: string;
+  avatar_url?: string;
+}
+
+export type NotificationType =
+  | 'message'
+  | 'comment'
+  | 'favorite'
+  | 'follow'
+  | 'review'
+  | 'boost'
+  | 'system';
+
+export interface AppNotification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  body?: string;
+  link?: string;
+  item_id?: number | null;
+  is_read: boolean;
+  created_at: string;
+  actor?: NotificationActor;
+}
+
+export interface NotificationsResponse {
+  results: AppNotification[];
+  unread: number;
 }
 
 // Classe principal do serviço de API
@@ -546,6 +580,29 @@ class ApiService {
     const params = otherUserId ? { other_user_id: otherUserId } : undefined;
     await this.axiosInstance.put(`/messages/item/${itemId}/read`, null, { params });
   }
+
+  async getNotifications(limit?: number): Promise<NotificationsResponse> {
+    const params = limit ? { limit } : undefined;
+    const response = await this.axiosInstance.get<NotificationsResponse>('/notifications', { params });
+    return response.data;
+  }
+
+  async getNotificationsUnreadCount(): Promise<number> {
+    const response = await this.axiosInstance.get<{ unread: number }>('/notifications/unread-count');
+    return response.data?.unread ?? 0;
+  }
+
+  async markNotificationRead(id: number): Promise<void> {
+    await this.axiosInstance.put(`/notifications/${id}/read`);
+  }
+
+  async markAllNotificationsRead(): Promise<void> {
+    await this.axiosInstance.put('/notifications/read-all');
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    await this.axiosInstance.delete(`/notifications/${id}`);
+  }
 }
 
 export type AttachmentKind = 'image' | 'file';
@@ -768,7 +825,23 @@ export interface Boost {
 }
 
 export async function requestBoost(itemId: number): Promise<Boost> {
-  return apiService.post<Boost>(`/items/${itemId}/boost`);
+	return apiService.post<Boost>(`/items/${itemId}/boost`);
+}
+
+export type ItemReportReason =
+  | 'prohibited_item'
+  | 'fraud'
+  | 'misleading'
+  | 'duplicate'
+  | 'offensive'
+  | 'other';
+
+export async function reportItem(
+  itemId: number,
+  reason: ItemReportReason,
+  details?: string
+): Promise<{ id: number; message: string }> {
+  return apiService.post(`/items/${itemId}/reports`, { reason, details: details?.trim() || '' });
 }
 
 export async function fetchStates(): Promise<StateOption[]> {

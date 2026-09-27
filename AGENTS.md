@@ -59,6 +59,8 @@ Detalhes (causa/sintoma/correção) em [`.cursor/skills/memoria-de-erros/SKILL.m
 8. **Model sem admin** — todo model novo **deve** ir no `AutoMigrate` **e**
    `admin.Register` (ver seção Admin).
 9. **Banco** — não reintroduzir SQLite/`DB_PATH` como padrão; o runtime é Postgres/PostGIS.
+10. **Row no app (Flutter)** — dois textos lado a lado exigem `Flexible`/`Expanded`
+    + `maxLines: 1` e ellipsis; sem isso a linha estoura em tela de celular.
 
 ## Admin — todo módulo/model novo DEVE aparecer no admin
 

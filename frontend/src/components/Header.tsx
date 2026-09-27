@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
+import { NotificationBell } from '@/components/NotificationBell';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { apiService } from '@/lib/services/api';
@@ -154,6 +155,8 @@ export const Header: React.FC = () => {
           />
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {isAuthenticated && <NotificationBell />}
+
             <Link
               href="/messages"
               className="relative hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-pill text-brand-500 hover:bg-subtle"
@@ -223,6 +226,9 @@ export const Header: React.FC = () => {
               { href: '/ofertas', label: 'ofertas de parceiros', slug: 'offers' },
               { href: '/vender', label: 'quero vender', slug: 'vender' },
               { href: '/messages', label: 'mensagens', slug: 'messages' },
+              ...(isAuthenticated
+                ? [{ href: '/notificacoes', label: 'notificações', slug: 'notifications' }]
+                : []),
               {
                 href: isAuthenticated ? '/perfil' : '/login',
                 label: isAuthenticated ? 'meu perfil' : 'entrar',

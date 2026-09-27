@@ -57,6 +57,42 @@ export interface VisitsStatsResponse {
 	top_items: VisitsTopItem[];
 }
 
+export interface ModerationSummary {
+	moderation_enabled: boolean;
+	pending_items: number;
+	open_reports: number;
+	total: number;
+}
+
+export interface ModerationItem {
+	id: number;
+	title: string;
+	description: string;
+	price: number;
+	image_url?: string;
+	status: string;
+	seller_name: string;
+	created_at: string;
+}
+
+export interface ModerationReport {
+	id: number;
+	item_id: number;
+	item_title: string;
+	item_status: string;
+	reporter_name: string;
+	reason: string;
+	details?: string;
+	created_at: string;
+}
+
+export interface ModerationQueue<T> {
+	data: T[];
+	total: number;
+	page: number;
+	perPage: number;
+}
+
 export interface User {
 	id: number;
 	email: string;

@@ -87,6 +87,17 @@ Formato de cada entrada:
   vírgula e converter para ponto, ou exigir número válido).
 - **Regra:** NUNCA enviar preço sem validar tipo/número antes do request.
 
+## Row com dois rótulos estoura a linha no app (Flutter)
+- **Causa:** linha "Lembrar de mim" + "Esqueceu a senha?" montada com `Row` de
+  dois `Text` sem `Flexible`, copiando um layout que na web quebra sozinho.
+- **Sintoma:** faixa listrada de overflow no card de login em tela estreita
+  (visto ao renderizar a tela num golden temporário antes de entregar).
+- **Correção:** `Flexible` nos dois lados + `maxLines: 1` e
+  `overflow: TextOverflow.ellipsis` nos textos.
+- **Regra:** NUNCA colocar dois textos lado a lado num `Row` no app sem
+  `Flexible`/`Expanded` + ellipsis — largura de celular e fonte ampliada
+  estouram o layout.
+
 ## Checklist final (sempre)
 - [ ] `cd frontend && npx tsc --noEmit`
 - [ ] `cd frontend && npx next build --no-lint`

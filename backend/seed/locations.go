@@ -180,7 +180,7 @@ func EnsureLocationSchema(db *gorm.DB) error {
 		`DO $$ BEGIN
 			ALTER TABLE items DROP CONSTRAINT IF EXISTS items_status_check;
 			ALTER TABLE items ADD CONSTRAINT items_status_check
-				CHECK (status IN ('active', 'reserved', 'sold', 'inactive'));
+				CHECK (status IN ('active', 'reserved', 'sold', 'inactive', 'pending', 'rejected'));
 		EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
 		`DO $$ BEGIN
 			ALTER TABLE follows ADD CONSTRAINT follows_not_self_check

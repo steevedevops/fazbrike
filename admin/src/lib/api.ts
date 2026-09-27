@@ -1,5 +1,14 @@
 import { env } from '$env/dynamic/public';
-import type { MetaResponse, ListResponse, User, VisitsStatsResponse } from './types';
+import type {
+	MetaResponse,
+	ListResponse,
+	User,
+	VisitsStatsResponse,
+	ModerationSummary,
+	ModerationItem,
+	ModerationReport,
+	ModerationQueue
+} from './types';
 
 const BASE = (env.PUBLIC_API_URL || 'http://localhost:8080/api').replace(/\/$/, '');
 const TOKEN_KEY = 'fazbrike_admin_token';
@@ -71,6 +80,30 @@ export const api = {
 	meta: () => request<MetaResponse>('/admin/meta'),
 	stats: () => request<Record<string, number>>('/admin/stats'),
 	visitsStats: (days = 30) => request<VisitsStatsResponse>(`/admin/stats/visits?days=${days}`),
+	moderationSummary: () => request<ModerationSummary>('/admin/moderation/summary'),
+	moderationItems: () =>
+		request<ModerationQueue<ModerationItem>>('/admin/moderation/queue?kind=items&perPage=100'),
+	moderationReports: () =>
+		request<ModerationQueue<ModerationReport>>('/admin/moderation/queue?kind=reports&perPage=100'),
+	setModerationEnabled: (enabled: boolean) =>
+		request<{ moderation_enabled: boolean; published_pending: number }>('/admin/moderation/settings', {
+			method: 'PUT',
+			body: JSON.stringify({ enabled })
+		}),
+	moderateItem: (id: number, action: 'approve' | 'reject', reason = '') =>
+		request<{ status: string }>(`/admin/moderation/items/${id}`, {
+			method: 'PUT',
+			body: JSON.stringify({ action, reason })
+		}),
+	moderateReport: (
+		id: number,
+		action: 'resolve' | 'dismiss' | 'reject_item',
+		resolution = ''
+	) =>
+		request<{ status: string }>(`/admin/moderation/reports/${id}`, {
+			method: 'PUT',
+			body: JSON.stringify({ action, resolution })
+		}),
 	list: (collection: string, params: Record<string, string | number> = {}) => {
 		const qs = new URLSearchParams();
 		for (const [k, v] of Object.entries(params)) {

@@ -49,6 +49,10 @@ func main() {
 		&models.Boost{},
 		&models.AffiliatePartner{},
 		&models.AffiliateProduct{},
+		&models.Promotion{},
+		&models.Notification{},
+		&models.DeviceToken{},
+		&models.ItemReport{},
 	); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
@@ -58,6 +62,15 @@ func main() {
 	}
 	if err := handlers.EnsureAffiliateProductIndexes(db); err != nil {
 		log.Fatal("Failed to ensure affiliate product indexes:", err)
+	}
+	if err := handlers.EnsurePromotionIndexes(db); err != nil {
+		log.Fatal("Failed to ensure promotion indexes:", err)
+	}
+	if err := handlers.EnsureNotificationIndexes(db); err != nil {
+		log.Fatal("Failed to ensure notification indexes:", err)
+	}
+	if err := handlers.EnsureItemReportSchema(db); err != nil {
+		log.Fatal("Failed to ensure item report schema:", err)
 	}
 
 	if err := handlers.BackfillItemImages(db); err != nil {
@@ -146,6 +159,25 @@ func main() {
 	r.GET("/api/cities", handlers.GetCities(db))
 	r.GET("/api/affiliate-products", handlers.GetAffiliateProducts(db))
 	r.GET("/api/affiliate-products/:id/redirect", handlers.RedirectAffiliateProduct(db))
+	r.GET("/api/promotions", handlers.GetPromotions(db))
+
+	notifications := r.Group("/api/notifications")
+	notifications.Use(middleware.AuthMiddleware())
+	{
+		notifications.GET("", handlers.GetNotifications(db))
+		notifications.GET("/unread-count", handlers.GetNotificationsUnreadCount(db))
+		notifications.PUT("/read-all", handlers.MarkAllNotificationsRead(db))
+		notifications.PUT("/:id/read", handlers.MarkNotificationRead(db))
+		notifications.DELETE("/:id", handlers.DeleteNotification(db))
+	}
+
+	// Aparelhos para push: grupo próprio para não colidir com /:id acima.
+	devices := r.Group("/api/devices")
+	devices.Use(middleware.AuthMiddleware())
+	{
+		devices.POST("", handlers.RegisterDeviceToken(db))
+		devices.DELETE("", handlers.DeleteDeviceToken(db))
+	}
 
 	reviews := r.Group("/api/reviews")
 	reviews.Use(middleware.AuthMiddleware())
@@ -180,6 +212,7 @@ func main() {
 		protectedItems.POST("/:id/view", handlers.RegisterItemView(db))
 		protectedItems.POST("/:id/duplicate", handlers.DuplicateItem(db))
 		protectedItems.POST("/:id/boost", handlers.RequestBoost(db))
+		protectedItems.POST("/:id/reports", middleware.RateLimit(10, time.Hour), handlers.CreateItemReport(db))
 		protectedItems.DELETE("/:id", handlers.DeleteItem(db))
 	}
 
@@ -272,6 +305,18 @@ func initAdminRegistry() error {
 	if err := admin.Register(&models.AffiliateProduct{}); err != nil {
 		return err
 	}
+	if err := admin.Register(&models.Promotion{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.Notification{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.DeviceToken{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.ItemReport{}); err != nil {
+		return err
+	}
 	admin.SetCollectionLabel("user", "Usuários")
 	admin.SetCollectionLabel("user_profile", "Perfis")
 	admin.SetCollectionLabel("category", "Categorias")
@@ -292,6 +337,10 @@ func initAdminRegistry() error {
 	admin.SetCollectionLabel("boost", "Impulsionamentos")
 	admin.SetCollectionLabel("affiliate_partner", "Parceiros afiliados")
 	admin.SetCollectionLabel("affiliate_product", "Ofertas de afiliados")
+	admin.SetCollectionLabel("promotion", "Promoções (banners)")
+	admin.SetCollectionLabel("notification", "Notificações")
+	admin.SetCollectionLabel("device_token", "Aparelhos (push)")
+	admin.SetCollectionLabel("item_report", "Denúncias de anúncios")
 	// Precisa rodar depois de todos os Register() acima: liga campos "*_id" às
 	// collections que eles referenciam (para o admin mostrar nome em vez de ID).
 	admin.ResolveRelations()

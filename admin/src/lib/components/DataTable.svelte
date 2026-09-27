@@ -114,14 +114,50 @@
 							aria-label="Selecionar registro"
 						/>
 					</td>
-					{#each visibleFields as f (f.key)}
+					{#each visibleFields as f, index (f.key)}
 						{@const enumOption = getEnumOption(collection.name, f.key, r[f.key])}
 						{#if f.relation}
-							<td class="cell" title={relationLabel(f, r)}>{relationLabel(f, r)}</td>
+							<td class="cell" title={relationLabel(f, r)}>
+								{#if index === 0}
+									<a
+										class="record-link"
+										href={`/collections/${collection.name}/${r.id}`}
+										aria-label={`Editar registro ${r.id}`}
+									>
+										{relationLabel(f, r)}
+									</a>
+								{:else}
+									{relationLabel(f, r)}
+								{/if}
+							</td>
 						{:else if enumOption && r[f.key] !== null && r[f.key] !== undefined && r[f.key] !== ''}
-							<td class="cell"><StatusBadge option={enumOption} /></td>
+							<td class="cell">
+								{#if index === 0}
+									<a
+										class="record-link"
+										href={`/collections/${collection.name}/${r.id}`}
+										aria-label={`Editar registro ${r.id}`}
+									>
+										<StatusBadge option={enumOption} />
+									</a>
+								{:else}
+									<StatusBadge option={enumOption} />
+								{/if}
+							</td>
 						{:else}
-							<td class="cell" title={fmt(f, r[f.key])}>{fmt(f, r[f.key])}</td>
+							<td class="cell" title={fmt(f, r[f.key])}>
+								{#if index === 0}
+									<a
+										class="record-link"
+										href={`/collections/${collection.name}/${r.id}`}
+										aria-label={`Editar registro ${r.id}`}
+									>
+										{fmt(f, r[f.key])}
+									</a>
+								{:else}
+									{fmt(f, r[f.key])}
+								{/if}
+							</td>
 						{/if}
 					{/each}
 					<td class="row-actions">
@@ -221,6 +257,19 @@
 	}
 	tbody tr:hover {
 		background: rgba(20, 18, 16, 0.025);
+	}
+	.record-link {
+		display: block;
+		margin: -12px -14px;
+		padding: 12px 14px;
+		font-weight: 600;
+		color: var(--ink);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.record-link:hover {
+		text-decoration: underline;
 	}
 	.row-actions {
 		text-align: right;

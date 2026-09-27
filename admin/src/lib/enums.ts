@@ -37,9 +37,16 @@ const LISTING_TYPE_OPTIONS: EnumOption[] = [
 const ENUMS: Record<string, EnumOption[]> = {
 	'item.status': [
 		{ value: 'active', label: 'Ativo', tone: 'success', icon: 'check' },
+		{ value: 'pending', label: 'Aguardando análise', tone: 'warn', icon: 'clock' },
+		{ value: 'rejected', label: 'Rejeitado', tone: 'danger', icon: 'x' },
 		{ value: 'reserved', label: 'Reservado', tone: 'warn', icon: 'clock' },
 		{ value: 'sold', label: 'Vendido', tone: 'neutral', icon: 'tag' },
 		{ value: 'inactive', label: 'Pausado', tone: 'muted', icon: 'pause' }
+	],
+	'item_report.status': [
+		{ value: 'open', label: 'Aberta', tone: 'warn', icon: 'clock' },
+		{ value: 'resolved', label: 'Resolvida', tone: 'success', icon: 'check' },
+		{ value: 'dismissed', label: 'Descartada', tone: 'muted', icon: 'x' }
 	],
 	'item.listing_type': LISTING_TYPE_OPTIONS,
 	'item.condition': [

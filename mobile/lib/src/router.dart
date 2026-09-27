@@ -6,11 +6,13 @@ import 'package:fazbrike/src/app/auth/screens/auth_screen.dart';
 import 'package:fazbrike/src/app/auth/screens/verify_email_screen.dart';
 import 'package:fazbrike/src/app/base/screens/base_dash.dart';
 import 'package:fazbrike/src/app/catalog/screens/catalog_screen.dart';
+import 'package:fazbrike/src/app/catalog/screens/categories_screen.dart';
 import 'package:fazbrike/src/app/catalog/screens/home_screen.dart';
 import 'package:fazbrike/src/app/items/screens/create_item_screen.dart';
 import 'package:fazbrike/src/app/items/screens/edit_item_screen.dart';
 import 'package:fazbrike/src/app/items/screens/item_detail_screen.dart';
 import 'package:fazbrike/src/app/messages/screens/messages_screen.dart';
+import 'package:fazbrike/src/app/notifications/screens/notifications_screen.dart';
 import 'package:fazbrike/src/app/messages/screens/thread_screen.dart';
 import 'package:fazbrike/src/app/profile/screens/profile_screen.dart';
 import 'package:fazbrike/src/app/profile/screens/public_profile_screen.dart';
@@ -22,6 +24,7 @@ bool _protected(String path) => path.startsWith('/vender') ||
     path.startsWith('/editar') ||
     path.startsWith('/mensagens') ||
     path.startsWith('/messages') ||
+    path.startsWith('/notificacoes') ||
     path.startsWith('/perfil');
 
 final appRouter = GoRouter(
@@ -54,8 +57,10 @@ final appRouter = GoRouter(
       ),
     ),
     GoRoute(path: '/messages', redirect: (_, __) => '/mensagens'),
+    GoRoute(path: NotificationsScreen.path, builder: (_, __) => const NotificationsScreen()),
     GoRoute(path: '/buscar', builder: (_, state) => CatalogScreen(search: state.uri.queryParameters['q'] ?? '', title: 'Resultados da busca')),
     GoRoute(path: '/categoria/:slug', builder: (_, state) => CatalogScreen(category: state.pathParameters['slug'] ?? '', title: state.pathParameters['slug'] ?? 'Categoria')),
+    GoRoute(path: CategoriesScreen.path, builder: (_, __) => const CategoriesScreen()),
     GoRoute(path: '/novidades', builder: (_, __) => const CatalogScreen(title: 'Novidades')),
     GoRoute(path: '/promocoes', builder: (_, __) => const CatalogScreen(title: 'Promoções', priceAscending: true)),
     GoRoute(path: '/marcas', builder: (_, __) => const CatalogScreen(title: 'Marcas')),

@@ -45,9 +45,9 @@
 		try {
 			record = await api.update(collection.name, id, data);
 			toast('success', 'Registro atualizado com sucesso.');
-			goto(`/collections/${collection.name}/${id}`);
 		} catch (e) {
 			toast('error', e instanceof ApiError ? e.message : 'Erro ao atualizar registro.');
+		} finally {
 			busy = false;
 		}
 	}

@@ -470,9 +470,28 @@ export default function PerfilPage() {
                   viewsCount={item.views_count || 0}
                   favoritesCount={item.favorites_count || 0}
                   isFavorited={!!item.is_favorited}
+                  href={item.status === 'active' ? `/produto/${item.id}` : `/editar/${item.id}`}
+                  showFavorite={false}
                 />
                 <div className="mt-2 flex flex-wrap gap-2 items-center">
-                  {item.status === 'sold' ? (
+                  {item.status === 'pending' ? (
+                    <>
+                      <span className={`${metaClass} self-center`}>Aguardando análise</span>
+                      <Link href={`/editar/${item.id}`} className={`${btnSecondaryClass} text-xs`}>
+                        Editar anúncio
+                      </Link>
+                    </>
+                  ) : item.status === 'rejected' ? (
+                    <div className="w-full rounded-control border border-danger/20 bg-danger/5 p-3">
+                      <p className="type-meta font-medium text-danger">Anúncio rejeitado</p>
+                      {item.rejection_reason ? (
+                        <p className={`${metaClass} mt-1`}>{item.rejection_reason}</p>
+                      ) : null}
+                      <Link href={`/editar/${item.id}`} className={`${btnSecondaryClass} mt-3 text-xs`}>
+                        Corrigir e reenviar
+                      </Link>
+                    </div>
+                  ) : item.status === 'sold' ? (
                     <span className={`${metaClass} self-center`}>Vendido</span>
                   ) : item.status === 'inactive' ? (
                     <>
@@ -510,13 +529,15 @@ export default function PerfilPage() {
                   >
                     Duplicar
                   </button>
-                  <button
-                    type="button"
-                    className={`${btnSecondaryClass} text-xs`}
-                    onClick={() => boostListing(item.id)}
-                  >
-                    Impulsionar
-                  </button>
+                  {item.status === 'active' ? (
+                    <button
+                      type="button"
+                      className={`${btnSecondaryClass} text-xs`}
+                      onClick={() => boostListing(item.id)}
+                    >
+                      Impulsionar
+                    </button>
+                  ) : null}
                 </div>
               </div>
             ))}

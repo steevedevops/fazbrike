@@ -196,7 +196,7 @@ export default function EditarPage() {
                 listing_mode: formData.listing_mode,
               })
             : '{}';
-      await updateItem(id, {
+		const updatedItem = await updateItem(id, {
         title: formData.title.trim(),
         description: formData.description.trim(),
         price,
@@ -218,7 +218,7 @@ export default function EditarPage() {
         );
       }
 
-      router.push(`/produto/${id}`);
+		router.push(updatedItem.status === 'pending' ? '/perfil' : `/produto/${id}`);
     } catch (err) {
       const message =
         err && typeof err === 'object' && 'message' in err
