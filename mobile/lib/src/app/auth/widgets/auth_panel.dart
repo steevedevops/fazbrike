@@ -8,6 +8,7 @@ import 'package:fazbrike/src/app/auth/widgets/auth_brand_header.dart';
 import 'package:fazbrike/src/app/auth/widgets/auth_field.dart';
 import 'package:fazbrike/src/app/auth/widgets/auth_mode_tabs.dart';
 import 'package:fazbrike/src/app/auth/widgets/password_strength_bar.dart';
+import 'package:fazbrike/src/app/auth/widgets/social_login_buttons.dart';
 import 'package:fazbrike/src/theme/app_colors.dart';
 import 'package:fazbrike/src/theme/app_radius.dart';
 import 'package:fazbrike/src/theme/app_spacing.dart';
@@ -29,6 +30,7 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
   final _confirm = TextEditingController();
   bool _register = false;
   bool _remember = false;
+  bool _acceptTerms = false;
   bool _obscure = true;
   String _error = '';
 
@@ -52,11 +54,15 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_register && !_acceptTerms) {
+      setState(() => _error = 'Aceite os Termos de uso e a Política de privacidade para criar a conta.');
+      return;
+    }
     setState(() => _error = '');
     try {
       final form = ref.read(authFormProvider.notifier);
       if (_register) {
-        final email = await form.register(_name.text, _email.text, _password.text);
+        final email = await form.register(_name.text, _email.text, _password.text, acceptTerms: _acceptTerms);
         if (mounted) context.go('/verificar-email?email=${Uri.encodeQueryComponent(email)}');
       } else {
         await form.login(_email.text, _password.text);
@@ -134,13 +140,15 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
                     ),
                   ),
                 ),
-                if (_register) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    'Ao criar uma conta você concorda com os termos de uso e a política de privacidade.',
-                    style: theme.textTheme.bodySmall,
+                SocialLoginButtons(onError: (message) => setState(() => _error = message)),
+                const SizedBox(height: AppSpacing.md),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () => context.push('/ajuda'),
+                    icon: const Icon(Icons.help_outline, size: 18),
+                    label: const Text('Central de ajuda'),
                   ),
-                ],
+                ),
               ],
             ),
           ),
@@ -171,6 +179,8 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
         _RememberRow(
           value: _remember,
           onChanged: (value) => setState(() => _remember = value),
+          // Ainda não há recuperação de senha automática: o pedido vai para o suporte.
+          onForgot: () => context.push('/ajuda/contato?assunto=conta'),
         ),
         const SizedBox(height: AppSpacing.lg),
       ];
@@ -214,6 +224,14 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
           suffixIcon: _visibilityToggle(),
           validator: (value) => value != _password.text ? 'As senhas não coincidem.' : null,
         ),
+        _TermsRow(
+          value: _acceptTerms,
+          onChanged: (value) => setState(() {
+            _acceptTerms = value;
+            if (value) _error = '';
+          }),
+        ),
+        const SizedBox(height: AppSpacing.lg),
       ];
 
   String? _validateEmail(String? value) =>
@@ -259,10 +277,11 @@ class _ErrorBanner extends StatelessWidget {
 }
 
 class _RememberRow extends StatelessWidget {
-  const _RememberRow({required this.value, required this.onChanged});
+  const _RememberRow({required this.value, required this.onChanged, required this.onForgot});
 
   final bool value;
   final ValueChanged<bool> onChanged;
+  final VoidCallback onForgot;
 
   @override
   Widget build(BuildContext context) {
@@ -306,15 +325,86 @@ class _RememberRow extends StatelessWidget {
           ),
         ),
         Flexible(
-          child: Text(
-            'Esqueceu a senha?',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.right,
-            style: theme.textTheme.bodySmall,
+          child: InkWell(
+            onTap: onForgot,
+            borderRadius: BorderRadius.circular(AppRadius.chip),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                'Esqueceu a senha?',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: theme.textTheme.bodySmall?.copyWith(decoration: TextDecoration.underline),
+              ),
+            ),
           ),
         ),
       ],
     );
   }
+}
+
+/// Aceite obrigatório no cadastro, com acesso aos textos completos.
+class _TermsRow extends StatelessWidget {
+  const _TermsRow({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 24,
+          height: 24,
+          child: Checkbox(
+            value: value,
+            onChanged: (next) => onChanged(next ?? false),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: () => onChanged(!value),
+                child: Text(
+                  'Li e aceito os Termos de uso e a Política de privacidade, e declaro ter 18 anos ou mais.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              Wrap(
+                spacing: AppSpacing.md,
+                children: [
+                  _link(context, 'Ler termos de uso', '/legal/termos-de-uso'),
+                  _link(context, 'Ler política de privacidade', '/legal/politica-de-privacidade'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _link(BuildContext context, String label, String route) => InkWell(
+        onTap: () => context.push(route),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  decoration: TextDecoration.underline,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+      );
 }

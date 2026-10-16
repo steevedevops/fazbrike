@@ -22,6 +22,10 @@ dependencies:
   intl: ^0.20.2
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.2
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
+  flutter_local_notifications: ^20.1.0
+  firebase_auth: ^6.7.0
 
 dev_dependencies:
   flutter_test:
@@ -40,7 +44,8 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "lib/assets/logos/app_icon.png"
+  image_path: "lib/assets/logos/app_icon_full.png"
+  remove_alpha_ios: true
   min_sdk_android: 21
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "lib/assets/logos/app_icon.png"
+  adaptive_icon_background: "#C45C26"
+  adaptive_icon_foreground: "lib/assets/logos/app_icon_foreground.png"

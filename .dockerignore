@@ -1,0 +1,36 @@
+.git
+.gitignore
+.cursor
+.vscode
+.idea
+**/.env
+**/.env.*
+!**/.env.example
+*.md
+
+# Não entram em nenhuma imagem
+mobile
+extras
+
+# Dados do docker em produção
+docker/postgres-data
+docker/uploads
+docker/logs
+
+# Node / builds locais
+**/node_modules
+frontend/.next
+frontend/out
+frontend/*.tsbuildinfo
+admin/build
+admin/.svelte-kit
+
+# Go / dados locais do backend
+backend/fazbrike-backend
+backend/uploads
+backend/backup/*.zip
+backend/*.db
+
+# OS
+.DS_Store
+**/*.log

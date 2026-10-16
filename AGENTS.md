@@ -61,6 +61,12 @@ Detalhes (causa/sintoma/correção) em [`.cursor/skills/memoria-de-erros/SKILL.m
 9. **Banco** — não reintroduzir SQLite/`DB_PATH` como padrão; o runtime é Postgres/PostGIS.
 10. **Row no app (Flutter)** — dois textos lado a lado exigem `Flexible`/`Expanded`
     + `maxLines: 1` e ellipsis; sem isso a linha estoura em tela de celular.
+11. **'use client'** — Server Component nunca importa constante/função de arquivo
+    `'use client'` (vira referência de cliente e quebra em runtime); mova para `src/lib`.
+12. **Go** — após `go get`, confira que o `go.mod` continua em `go 1.25.0` (imagem
+    Docker `golang:1.25`); nunca `@latest` às cegas.
+13. **next build x next dev** — não rode `next build` com o `next dev` (porta 3003) no ar:
+    os dois usam `frontend/.next` e o dev passa a dar 500. Se rodar, reinicie o dev limpando `.next`.
 
 ## Admin — todo módulo/model novo DEVE aparecer no admin
 

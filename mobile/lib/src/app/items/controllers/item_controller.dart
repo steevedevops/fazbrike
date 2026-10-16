@@ -33,31 +33,86 @@ final itemCommentsProvider = StateNotifierProvider.family<ItemCommentsNotifier,
   (ref, id) => ItemCommentsNotifier(ref, id),
 );
 
+/// O que define "parecido" com o anúncio aberto. Record para o `family`
+/// comparar por valor e não refazer a busca a cada rebuild.
+typedef RelatedItemsQuery = ({
+  int itemId,
+  String category,
+  String listingType,
+  int? cityId,
+  int? stateId,
+  String listingMode,
+  double price,
+});
+
+RelatedItemsQuery relatedQueryFor(ItemModel item) => (
+      itemId: item.id,
+      category: item.category,
+      listingType: item.listingType,
+      cityId: item.cityId,
+      stateId: item.stateId,
+      listingMode: item.attributes['listing_mode']?.toString() ?? '',
+      price: item.price,
+    );
+
+/// Ordena candidatos pelo quanto lembram o anúncio aberto: mesma
+/// subcategoria, mesma cidade (ou estado), mesma finalidade (venda/locação)
+/// e preço próximo. Empate mantém a ordem da API (mais recentes primeiro).
+List<ItemModel> rankRelatedItems(RelatedItemsQuery query, List<ItemModel> candidates, {int limit = 10}) {
+  double score(ItemModel item) {
+    var value = 0.0;
+    if (query.category.isNotEmpty && item.category == query.category) value += 4;
+    if (query.cityId != null && item.cityId == query.cityId) {
+      value += 3;
+    } else if (query.stateId != null && item.stateId == query.stateId) {
+      value += 1;
+    }
+    if (query.listingMode.isNotEmpty && item.attributes['listing_mode']?.toString() == query.listingMode) value += 3;
+    if (query.price > 0) {
+      final gap = ((item.price - query.price).abs() / query.price).clamp(0.0, 1.0);
+      value += 2 * (1 - gap);
+    }
+    return value;
+  }
+
+  final scored = [
+    for (final (index, item) in candidates.where((item) => item.id != query.itemId).indexed) (item, score(item), index),
+  ]..sort((a, b) {
+      final byScore = b.$2.compareTo(a.$2);
+      return byScore != 0 ? byScore : a.$3.compareTo(b.$3);
+    });
+  return scored.take(limit).map((entry) => entry.$1).toList();
+}
+
 final relatedItemsProvider = StateNotifierProvider.family<RelatedItemsNotifier,
-    AsyncValue<PaginatorModel<ItemModel>>, (int, String)>(
-  (ref, args) => RelatedItemsNotifier(ref, args.$1, args.$2),
+    AsyncValue<PaginatorModel<ItemModel>>, RelatedItemsQuery>(
+  (ref, query) => RelatedItemsNotifier(ref, query),
 );
 
 class RelatedItemsNotifier
     extends StateNotifier<AsyncValue<PaginatorModel<ItemModel>>> {
-  RelatedItemsNotifier(this.ref, this.itemId, this.category)
+  RelatedItemsNotifier(this.ref, this.query)
       : super(const AsyncValue.loading()) {
     list();
   }
   final Ref ref;
-  final int itemId;
-  final String category;
+  final RelatedItemsQuery query;
+
+  /// Imóveis e veículos buscam pelo tipo inteiro (a subcategoria sozinha
+  /// costuma ter 0–1 anúncio, ex.: só um "apartamento-aluguel") e o ranking
+  /// prioriza os mais parecidos. Demais anúncios ficam na mesma categoria.
+  Map<String, dynamic>? get _filters {
+    if (query.listingType == 'property' || query.listingType == 'vehicle') {
+      return {'listing_type': query.listingType};
+    }
+    return query.category.isEmpty ? null : {'category': query.category};
+  }
+
   Future<void> list({int? page, bool paginate = false}) async {
     state = const AsyncValue.loading();
     try {
-      final response = await ref.read(apiServicesProvider).get(
-        '/items',
-        query: category.isEmpty ? null : {'category': category},
-      );
-      final items = ItemModel.fromJsonList(response.data)
-          .where((item) => item.id != itemId)
-          .take(8)
-          .toList();
+      final response = await ref.read(apiServicesProvider).get('/items', query: _filters);
+      final items = rankRelatedItems(query, ItemModel.fromJsonList(response.data));
       state = AsyncValue.data(PaginatorModel(results: items));
     } catch (error, stack) {
       state = AsyncValue.error(error, stack);
@@ -167,6 +222,15 @@ class ItemFormNotifier extends StateNotifier<AsyncValue<String>> {
   Future<String> boost(int itemId) async {
     await ref.read(apiServicesProvider).post('/items/$itemId/boost');
     return 'Solicitação de impulsionamento enviada.';
+  }
+
+  /// Denuncia o anúncio; a API aceita uma denúncia aberta por pessoa.
+  Future<String> report(int itemId, String reason, String details) async {
+    final response = await ref.read(apiServicesProvider).post(
+      '/items/$itemId/reports',
+      data: {'reason': reason, 'details': details.trim()},
+    );
+    return asMap(response.data)['message']?.toString() ?? 'Denúncia enviada.';
   }
 
   Future<ItemModel> toggleFavorite(ItemModel item) async {

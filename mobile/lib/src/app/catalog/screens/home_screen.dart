@@ -31,19 +31,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: RefreshIndicator(
-          onRefresh: _load,
-          child: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                pinned: true,
-                titleSpacing: AppSpacing.lg,
-                title: const AppLogo(),
-                actions: const [NotificationBell(), SizedBox(width: AppSpacing.xs)],
-                bottom: const HomeSearchHeader(),
-              ),
-              const SliverToBoxAdapter(child: HomeContent()),
-            ],
+        // SafeArea por fora da rolagem: quando a linha da marca sai de cena, a
+        // busca fixa para logo abaixo da barra de status, não embaixo dela.
+        body: SafeArea(
+          bottom: false,
+          child: RefreshIndicator(
+            onRefresh: _load,
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  primary: false,
+                  pinned: false,
+                  floating: false,
+                  titleSpacing: AppSpacing.lg,
+                  // O fio embaixo fica por conta da faixa de busca.
+                  shape: const Border(),
+                  title: const AppLogo(),
+                  actions: const [NotificationBell(), SizedBox(width: AppSpacing.xs)],
+                ),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: HomeSearchHeaderDelegate(height: HomeSearchHeader.heightOf(context)),
+                ),
+                const SliverToBoxAdapter(child: HomeContent()),
+              ],
+            ),
           ),
         ),
       );

@@ -843,7 +843,12 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
           <div className={`${panelClass} w-full max-w-lg bg-surface p-6`} role="dialog" aria-modal="true" aria-labelledby="report-title">
             <h2 id="report-title" className={sectionTitleClass}>Denunciar anúncio</h2>
             <p className={`${metaClass} mt-2`}>
-              Conte o que há de errado. A denúncia será analisada pela equipe do Fazbrike.
+              Conte o que há de errado. A denúncia será analisada pela equipe do Fazbrike e o anunciante não
+              saberá quem denunciou. Veja as{' '}
+              <Link href="/regras-de-publicacao" target="_blank" className="underline text-ink">
+                Regras de publicação
+              </Link>
+              .
             </p>
             <form onSubmit={handleReport} className="mt-5 space-y-4">
               <div>
@@ -863,7 +868,9 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
                 </select>
               </div>
               <div>
-                <label htmlFor="report-details" className={labelClass}>Detalhes (opcional)</label>
+                <label htmlFor="report-details" className={labelClass}>
+                  Detalhes {reportReason === 'other' ? '(obrigatório)' : '(opcional)'}
+                </label>
                 <textarea
                   id="report-details"
                   rows={4}

@@ -98,6 +98,35 @@ Formato de cada entrada:
   `Flexible`/`Expanded` + ellipsis — largura de celular e fonte ampliada
   estouram o layout.
 
+## Constante importada de módulo 'use client' em Server Component
+- **Causa:** `app/ajuda/page.tsx` (Server Component) importava `SUPPORT_TOPICS`
+  de `components/help/SupportRequestForm.tsx`, que tem `'use client'`.
+- **Sintoma:** no App Router, tudo que sai de um módulo `'use client'` vira
+  referência de cliente no servidor; `SUPPORT_TOPICS.some(...)` quebra em runtime
+  (o `tsc` não acusa).
+- **Correção:** mover constantes/helpers compartilhados para um módulo sem
+  `'use client'` (`src/lib/legal.ts`) e importar de lá nos dois lados.
+- **Regra:** NUNCA importar valores (arrays, objetos, funções) de arquivo
+  `'use client'` dentro de Server Component. Só componentes; o resto vai para `src/lib`.
+
+## `go get pacote@latest` sobe a diretiva `go` do go.mod
+- **Causa:** `go get golang.org/x/oauth2@latest` exigia Go 1.26 e reescreveu
+  `go 1.25.0` → `go 1.26.0` no `backend/go.mod`.
+- **Sintoma:** build local passa (toolchain baixa sozinho), mas a imagem
+  `golang:1.25-bookworm` do `docker/backend/Dockerfile` deixa de compilar.
+- **Correção:** reverter `go.mod`/`go.sum` e fixar uma versão compatível
+  (`golang.org/x/oauth2@v0.33.0`).
+- **Regra:** NUNCA usar `@latest` em `go get` sem conferir depois que a linha
+  `go 1.25.0` do go.mod não mudou.
+
+## `next build` com o `next dev` rodando derruba o servidor de dev
+- **Causa:** a verificação `npx next build --no-lint` escreve na mesma pasta
+  `frontend/.next` usada pelo `next dev` (porta 3003) que estava no ar.
+- **Sintoma:** depois do build, todas as rotas do dev passam a responder 500.
+- **Correção:** encerrar o dev, `rm -rf frontend/.next` e subir `npm run dev` de novo.
+- **Regra:** NUNCA rodar `next build` com o dev ativo. Antes, conferir
+  `ss -ltnp | grep 3003`; se estiver no ar, buildar numa cópia ou avisar e reiniciar o dev depois.
+
 ## Checklist final (sempre)
 - [ ] `cd frontend && npx tsc --noEmit`
 - [ ] `cd frontend && npx next build --no-lint`

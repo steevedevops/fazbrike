@@ -32,7 +32,8 @@ type FieldMeta struct {
 	HiddenInForm bool          `json:"hidden_in_form"`
 	Editable     bool          `json:"editable"`
 	Sortable     bool          `json:"sortable"`
-	Relation     *RelationMeta `json:"relation,omitempty"` // presente quando o campo é uma FK ("*_id")
+	Multiline    bool          `json:"multiline,omitempty"` // texto longo: textarea no formulário
+	Relation     *RelationMeta `json:"relation,omitempty"`  // presente quando o campo é uma FK ("*_id")
 }
 
 // RelationMeta descreve para qual collection uma FK aponta e qual campo dela
@@ -133,6 +134,8 @@ func Register(model interface{}) error {
 				fm.HiddenInList = true
 			case option == "form:hidden":
 				fm.HiddenInForm = true
+			case option == "form:textarea":
+				fm.Multiline = true
 			}
 		}
 

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -133,7 +134,10 @@ export const LoginForm: React.FC = () => {
             />
             <span className="ml-2">Lembrar de mim</span>
           </label>
-          <span className={metaClass}>Esqueceu a senha?</span>
+          {/* Ainda não há recuperação de senha automática: o pedido vai para o suporte. */}
+          <Link href="/ajuda?assunto=conta#contato" className={`${metaClass} underline hover:text-ink`}>
+            Esqueceu a senha?
+          </Link>
         </div>
 
         <button type="submit" disabled={!canSubmit} className={`${btnInkClass} w-full`}>

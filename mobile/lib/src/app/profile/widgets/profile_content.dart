@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fazbrike/services/api_services.dart';
 import 'package:fazbrike/src/app/auth/controllers/auth_controller.dart';
+import 'package:fazbrike/src/app/help/widgets/help_menu_card.dart';
 import 'package:fazbrike/src/app/items/controllers/item_controller.dart';
 import 'package:fazbrike/src/app/items/models/item_model.dart';
 import 'package:fazbrike/src/app/profile/controllers/profile_controller.dart';
 import 'package:fazbrike/src/app/profile/widgets/profile_edit_sheet.dart';
+import 'package:fazbrike/src/app/promotions/screens/my_promotions_screen.dart';
 import 'package:fazbrike/src/shared/utils/app_utils.dart';
 import 'package:fazbrike/src/shared/widgets/empty_view.dart';
 import 'package:fazbrike/src/shared/widgets/error_view.dart';
@@ -72,6 +74,7 @@ class ProfileContent extends ConsumerWidget {
                 Wrap(spacing: 8, runSpacing: 8, children: [
                   FilledButton.tonal(onPressed: () => showModalBottomSheet(context: context, isScrollControlled: true, useSafeArea: true, builder: (_) => ProfileEditSheet(profile: data)), child: const Text('Editar perfil')),
                   OutlinedButton(onPressed: () => context.push('/usuario/${data.user.id}'), child: const Text('Ver como público')),
+                  OutlinedButton(onPressed: () => context.push(MyPromotionsScreen.path), child: const Text('Minhas promoções')),
                   OutlinedButton(onPressed: () async { await ref.read(authSessionProvider.notifier).logout(); if (context.mounted) context.go('/'); }, child: const Text('Sair')),
                 ]),
                 const Divider(height: AppSpacing.xxl),
@@ -86,6 +89,10 @@ class ProfileContent extends ConsumerWidget {
                       ? EmptyView(title: 'Você ainda não publicou', description: 'Publique o primeiro item e ele aparece aqui.', action: FilledButton(onPressed: () => context.push('/vender'), child: const Text('Publicar item')))
                       : Column(children: [for (final item in page.results) _OwnedItemTile(item: item)]),
                 ),
+                const Divider(height: AppSpacing.xxl),
+                Text('Ajuda e políticas', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: AppSpacing.md),
+                const HelpMenuCard(),
               ]),
             ),
           ],

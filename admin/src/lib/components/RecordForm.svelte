@@ -138,10 +138,10 @@
 					value={String(values[f.key] ?? '')}
 					oninput={(e) => setVal(f, e.currentTarget.value)}
 				/>
-			{:else if f.kind === 'text' && (f.key === 'description' || String(f.label).length > 24)}
+			{:else if f.kind === 'text' && (f.multiline || f.key === 'description' || String(f.label).length > 24)}
 				<textarea
 					id={`f-${f.key}`}
-					rows="4"
+					rows={f.multiline ? 12 : 4}
 					value={String(values[f.key] ?? '')}
 					oninput={(e) => setVal(f, e.currentTarget.value)}
 					required={f.required}

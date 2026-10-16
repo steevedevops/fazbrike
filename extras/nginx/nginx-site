@@ -1,0 +1,38 @@
+# Fazbrike — Nginx da loja pública (Next.js no container)
+# Copiar para /etc/nginx/sites-available/fazbrike.com.br e ativar com link em sites-enabled
+# Container: docker compose service `site` em 127.0.0.1:3010
+
+server {
+    listen                    80;
+    listen                    [::]:80;
+    #listen 443 ssl http2;
+    #listen [::]:443 ssl http2;
+    server_name               fazbrike.com.br www.fazbrike.com.br;
+
+    gzip                      on;
+    gzip_types                text/plain text/css application/javascript application/json application/ld+json application/xml image/svg+xml;
+
+    #ssl_certificate           /etc/letsencrypt/live/fazbrike.com.br/fullchain.pem;
+    #ssl_certificate_key       /etc/letsencrypt/live/fazbrike.com.br/privkey.pem;
+    #ssl_protocols             TLSv1.2 TLSv1.3;
+    #ssl_ciphers               EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH:ECDHE-RSA-AES128-SHA;
+    #ssl_prefer_server_ciphers on;
+
+    # Assets com hash do Next — cache longo
+    location /_next/static/ {
+        proxy_pass             http://127.0.0.1:3010;
+        proxy_http_version     1.1;
+        proxy_set_header       Host $host;
+        expires                1y;
+        add_header             Cache-Control "public, immutable";
+    }
+
+    location / {
+        proxy_pass             http://127.0.0.1:3010;
+        proxy_http_version     1.1;
+        proxy_set_header       Host $host;
+        proxy_set_header       X-Real-IP $remote_addr;
+        proxy_set_header       X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header       X-Forwarded-Proto $scheme;
+    }
+}

@@ -1,0 +1,118 @@
+# Fazbrike — produção
+# Pré-requisito: docker network create fazbrike
+# Antes do build: cp .env.example .env e preencher (JWT_SECRET, POSTGRES_PASSWORD...)
+#
+# Portas no host (só loopback; o Nginx do host faz o proxy):
+#   backend  127.0.0.1:8010 → api.fazbrike.com.br
+#   site     127.0.0.1:3010 → fazbrike.com.br
+#   admin    127.0.0.1:8091 → admin.fazbrike.com.br
+#   pgadmin  127.0.0.1:5051
+
+services:
+    backend:
+        build:
+            context: ..
+            dockerfile: docker/backend/Dockerfile
+        image: fazbrike_backend:1.0.0
+        restart: unless-stopped
+        env_file:
+            - .env
+        environment:
+            GIN_MODE: release
+            PORT: 8080
+            DB_HOST: database
+            DB_PORT: 5432
+            DB_USER: webmaster
+            DB_PASSWORD: "${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD em docker/.env}"
+            DB_NAME: fazbrike
+            DB_SSLMODE: disable
+            JWT_SECRET: "${JWT_SECRET:?defina JWT_SECRET em docker/.env}"
+            ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-https://fazbrike.com.br,https://www.fazbrike.com.br,https://admin.fazbrike.com.br}"
+        ports:
+            - "127.0.0.1:8010:8080"
+        volumes:
+            - ./uploads:/opt/fazbrike/backend/uploads
+        depends_on:
+            database:
+                condition: service_healthy
+        networks:
+            - fazbrike
+
+    database:
+        restart: unless-stopped
+        platform: linux/amd64
+        image: postgis/postgis:18-3.6
+        environment:
+            POSTGRES_DB: fazbrike
+            POSTGRES_USER: webmaster
+            POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD em docker/.env}"
+        volumes:
+            - ./postgres-data:/var/lib/postgresql
+        networks:
+            - fazbrike
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U webmaster -d fazbrike"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+
+    pgadmin:
+        restart: unless-stopped
+        image: dpage/pgadmin4:9.12
+        ports:
+            - "127.0.0.1:5051:80"
+        networks:
+            - fazbrike
+        environment:
+            PGADMIN_DEFAULT_EMAIL: "admin@fazbrike.com.br"
+            PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD:?defina PGADMIN_DEFAULT_PASSWORD em docker/.env}"
+            PGADMIN_CONFIG_CONSOLE_LOG_LEVEL: 10
+
+    site:
+        # Loja pública (Next.js standalone). NEXT_PUBLIC_* entram no bundle no build.
+        build:
+            context: ..
+            dockerfile: docker/site/Dockerfile
+            args:
+                NEXT_PUBLIC_API_URL: "${NEXT_PUBLIC_API_URL:-https://api.fazbrike.com.br/api}"
+                NEXT_PUBLIC_SITE_URL: "${NEXT_PUBLIC_SITE_URL:-https://fazbrike.com.br}"
+        image: fazbrike_site:1.0.0
+        restart: unless-stopped
+        ports:
+            - "127.0.0.1:3010:3000"
+        healthcheck:
+            test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/robots.txt"]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 20s
+        depends_on:
+            backend:
+                condition: service_started
+        networks:
+            - fazbrike
+
+    admin:
+        # Painel SvelteKit (SPA estático servido por nginx). PUBLIC_API_URL entra no build.
+        build:
+            context: ..
+            dockerfile: docker/admin/Dockerfile
+            args:
+                PUBLIC_API_URL: "${PUBLIC_API_URL:-https://api.fazbrike.com.br/api}"
+        image: fazbrike_admin:1.0.0
+        restart: unless-stopped
+        ports:
+            - "127.0.0.1:8091:80"
+        healthcheck:
+            test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 10s
+        networks:
+            - fazbrike
+
+networks:
+    fazbrike:
+        external: true

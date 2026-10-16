@@ -6,6 +6,7 @@ import (
 	"fazbrike-backend/handlers"
 	"fazbrike-backend/middleware"
 	"fazbrike-backend/models"
+	"fazbrike-backend/push"
 	"fazbrike-backend/seed"
 	"log"
 	"os"
@@ -53,6 +54,10 @@ func main() {
 		&models.Notification{},
 		&models.DeviceToken{},
 		&models.ItemReport{},
+		&models.HelpArticle{},
+		&models.LegalDocument{},
+		&models.SupportRequest{},
+		&models.SocialAccount{},
 	); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
@@ -63,6 +68,9 @@ func main() {
 	if err := handlers.EnsureAffiliateProductIndexes(db); err != nil {
 		log.Fatal("Failed to ensure affiliate product indexes:", err)
 	}
+	if err := handlers.MigratePromotionLinks(db); err != nil {
+		log.Fatal("Failed to migrate promotion links:", err)
+	}
 	if err := handlers.EnsurePromotionIndexes(db); err != nil {
 		log.Fatal("Failed to ensure promotion indexes:", err)
 	}
@@ -71,6 +79,9 @@ func main() {
 	}
 	if err := handlers.EnsureItemReportSchema(db); err != nil {
 		log.Fatal("Failed to ensure item report schema:", err)
+	}
+	if err := handlers.EnsureHelpSchema(db); err != nil {
+		log.Fatal("Failed to ensure help schema:", err)
 	}
 
 	if err := handlers.BackfillItemImages(db); err != nil {
@@ -91,6 +102,14 @@ func main() {
 
 	if err := seed.SeedConfigurations(db); err != nil {
 		log.Fatal("Failed to seed configurations:", err)
+	}
+
+	if err := seed.SeedLegalDocuments(db); err != nil {
+		log.Fatal("Failed to seed legal documents:", err)
+	}
+
+	if err := seed.SeedHelpArticles(db); err != nil {
+		log.Fatal("Failed to seed help articles:", err)
 	}
 
 	if err := backfillUserProfiles(db); err != nil {
@@ -129,6 +148,8 @@ func main() {
 		auth.POST("/login", middleware.RateLimit(30, time.Minute), handlers.Login(db))
 		auth.POST("/verify-code", middleware.RateLimit(20, time.Minute), handlers.VerifyEmailCode(db))
 		auth.POST("/resend-code", middleware.RateLimit(10, time.Minute), handlers.ResendEmailCode(db))
+		// Google/Apple via Firebase Authentication: troca o ID token pelo JWT do Fazbrike.
+		auth.POST("/social", middleware.RateLimit(30, time.Minute), handlers.SocialLogin(db))
 		auth.GET("/me", middleware.AuthMiddleware(), handlers.GetProfile(db))
 	}
 
@@ -155,11 +176,38 @@ func main() {
 	}
 
 	r.GET("/api/categories", handlers.GetCategories(db))
+	r.GET("/api/help/articles", handlers.GetHelpArticles(db))
+	r.GET("/api/legal", handlers.GetLegalDocuments(db))
+	r.GET("/api/legal/:slug", handlers.GetLegalDocument(db))
+
+	support := r.Group("/api/support")
+	{
+		// Visitante também abre chamado (ex.: não consegue entrar na conta).
+		support.POST("/requests", middleware.OptionalAuthMiddleware(), middleware.RateLimit(10, time.Hour), handlers.CreateSupportRequest(db))
+		support.GET("/requests/mine", middleware.AuthMiddleware(), handlers.GetMySupportRequests(db))
+	}
 	r.GET("/api/states", handlers.GetStates(db))
 	r.GET("/api/cities", handlers.GetCities(db))
 	r.GET("/api/affiliate-products", handlers.GetAffiliateProducts(db))
 	r.GET("/api/affiliate-products/:id/redirect", handlers.RedirectAffiliateProduct(db))
-	r.GET("/api/promotions", handlers.GetPromotions(db))
+	publicPromotions := r.Group("/api/promotions")
+	{
+		publicPromotions.GET("", handlers.GetPromotions(db))
+		// Métricas: limite generoso, mas impede inflar contador em loop.
+		publicPromotions.POST("/:id/click", middleware.RateLimit(120, time.Minute), handlers.ClickPromotion(db))
+		publicPromotions.POST("/impressions", middleware.RateLimit(120, time.Minute), handlers.RegisterPromotionImpressions(db))
+	}
+
+	myPromotions := r.Group("/api/promotions")
+	myPromotions.Use(middleware.AuthMiddleware())
+	{
+		myPromotions.GET("/mine", handlers.GetMyPromotions(db))
+		myPromotions.POST("", middleware.RateLimit(20, time.Minute), handlers.CreatePromotion(db))
+		myPromotions.POST("/image", middleware.RateLimit(20, time.Minute), handlers.UploadPromotionImage(db))
+		myPromotions.PUT("/:id", handlers.UpdatePromotion(db))
+		myPromotions.PUT("/:id/status", handlers.UpdatePromotionStatus(db))
+		myPromotions.DELETE("/:id", handlers.DeletePromotion(db))
+	}
 
 	notifications := r.Group("/api/notifications")
 	notifications.Use(middleware.AuthMiddleware())
@@ -228,6 +276,7 @@ func main() {
 	}
 
 	admin.RegisterRoutes(r, db)
+	handlers.PushSender = push.NewFCMSender(db)
 
 	r.GET("/api/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
@@ -317,6 +366,18 @@ func initAdminRegistry() error {
 	if err := admin.Register(&models.ItemReport{}); err != nil {
 		return err
 	}
+	if err := admin.Register(&models.HelpArticle{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.LegalDocument{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.SupportRequest{}); err != nil {
+		return err
+	}
+	if err := admin.Register(&models.SocialAccount{}); err != nil {
+		return err
+	}
 	admin.SetCollectionLabel("user", "Usuários")
 	admin.SetCollectionLabel("user_profile", "Perfis")
 	admin.SetCollectionLabel("category", "Categorias")
@@ -341,6 +402,10 @@ func initAdminRegistry() error {
 	admin.SetCollectionLabel("notification", "Notificações")
 	admin.SetCollectionLabel("device_token", "Aparelhos (push)")
 	admin.SetCollectionLabel("item_report", "Denúncias de anúncios")
+	admin.SetCollectionLabel("help_article", "Central de ajuda (perguntas)")
+	admin.SetCollectionLabel("legal_document", "Termos e políticas")
+	admin.SetCollectionLabel("support_request", "Chamados de suporte")
+	admin.SetCollectionLabel("social_account", "Logins sociais (Google/Apple)")
 	// Precisa rodar depois de todos os Register() acima: liga campos "*_id" às
 	// collections que eles referenciam (para o admin mostrar nome em vez de ID).
 	admin.ResolveRelations()

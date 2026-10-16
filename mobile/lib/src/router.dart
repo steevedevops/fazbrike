@@ -8,6 +8,10 @@ import 'package:fazbrike/src/app/base/screens/base_dash.dart';
 import 'package:fazbrike/src/app/catalog/screens/catalog_screen.dart';
 import 'package:fazbrike/src/app/catalog/screens/categories_screen.dart';
 import 'package:fazbrike/src/app/catalog/screens/home_screen.dart';
+import 'package:fazbrike/src/app/help/screens/help_center_screen.dart';
+import 'package:fazbrike/src/app/help/screens/legal_document_screen.dart';
+import 'package:fazbrike/src/app/help/screens/my_support_requests_screen.dart';
+import 'package:fazbrike/src/app/help/screens/support_request_screen.dart';
 import 'package:fazbrike/src/app/items/screens/create_item_screen.dart';
 import 'package:fazbrike/src/app/items/screens/edit_item_screen.dart';
 import 'package:fazbrike/src/app/items/screens/item_detail_screen.dart';
@@ -15,6 +19,9 @@ import 'package:fazbrike/src/app/messages/screens/messages_screen.dart';
 import 'package:fazbrike/src/app/notifications/screens/notifications_screen.dart';
 import 'package:fazbrike/src/app/messages/screens/thread_screen.dart';
 import 'package:fazbrike/src/app/profile/screens/profile_screen.dart';
+import 'package:fazbrike/src/app/promotions/models/promotion_model.dart';
+import 'package:fazbrike/src/app/promotions/screens/my_promotions_screen.dart';
+import 'package:fazbrike/src/app/promotions/screens/promotion_editor_screen.dart';
 import 'package:fazbrike/src/app/profile/screens/public_profile_screen.dart';
 import 'package:fazbrike/src/app/splash/screens/splash_screen.dart';
 
@@ -25,6 +32,8 @@ bool _protected(String path) => path.startsWith('/vender') ||
     path.startsWith('/mensagens') ||
     path.startsWith('/messages') ||
     path.startsWith('/notificacoes') ||
+    path.startsWith('/minhas-promocoes') ||
+    path.startsWith(MySupportRequestsScreen.path) ||
     path.startsWith('/perfil');
 
 final appRouter = GoRouter(
@@ -58,6 +67,25 @@ final appRouter = GoRouter(
     ),
     GoRoute(path: '/messages', redirect: (_, __) => '/mensagens'),
     GoRoute(path: NotificationsScreen.path, builder: (_, __) => const NotificationsScreen()),
+    // Central de ajuda e documentos legais são públicos (inclusive para quem
+    // não consegue entrar); só "Meus chamados" exige login.
+    GoRoute(path: HelpCenterScreen.path, builder: (_, __) => const HelpCenterScreen()),
+    GoRoute(
+      path: SupportRequestScreen.path,
+      builder: (_, state) => SupportRequestScreen(
+        initialTopic: state.uri.queryParameters['assunto'] ?? 'conta',
+        itemId: int.tryParse(state.uri.queryParameters['anuncio'] ?? ''),
+      ),
+    ),
+    GoRoute(path: MySupportRequestsScreen.path, builder: (_, __) => const MySupportRequestsScreen()),
+    GoRoute(path: LegalDocumentScreen.path, builder: (_, state) => LegalDocumentScreen(slug: state.pathParameters['slug'] ?? '')),
+    GoRoute(path: MyPromotionsScreen.path, builder: (_, __) => const MyPromotionsScreen()),
+    // A rota estática vem antes da com parâmetro: "nova" não pode cair no :id.
+    GoRoute(path: PromotionEditorScreen.newPath, builder: (_, __) => const PromotionEditorScreen()),
+    GoRoute(
+      path: '${MyPromotionsScreen.path}/:id',
+      builder: (_, state) => PromotionEditorScreen(promotion: state.extra as MyPromotionModel?),
+    ),
     GoRoute(path: '/buscar', builder: (_, state) => CatalogScreen(search: state.uri.queryParameters['q'] ?? '', title: 'Resultados da busca')),
     GoRoute(path: '/categoria/:slug', builder: (_, state) => CatalogScreen(category: state.pathParameters['slug'] ?? '', title: state.pathParameters['slug'] ?? 'Categoria')),
     GoRoute(path: CategoriesScreen.path, builder: (_, __) => const CategoriesScreen()),

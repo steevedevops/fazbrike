@@ -151,8 +151,7 @@ class NotificationFormNotifier extends StateNotifier<AsyncValue<String>> {
     }
   }
 
-  /// Registra o token de push do aparelho. Fica pronto para o dia em que o
-  /// FCM/APNs entrar: só falta quem produz o `token`.
+  /// Registra o token FCM do aparelho (chamado pelo PushNotificationsController).
   Future<void> registerDevice({required String token, required String platform, String appVersion = ''}) async {
     try {
       await ref.read(apiServicesProvider).post('/devices', data: {

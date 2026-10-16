@@ -16,6 +16,7 @@ export interface FieldMeta {
 	hidden_in_form: boolean;
 	editable: boolean;
 	sortable: boolean;
+	multiline?: boolean;
 	relation?: RelationMeta;
 }
 

@@ -5,6 +5,7 @@ import 'package:fazbrike/services/api_services.dart';
 import 'package:fazbrike/services/models/api_response_model.dart';
 import 'package:fazbrike/src/app/catalog/screens/categories_screen.dart';
 import 'package:fazbrike/src/app/catalog/screens/home_screen.dart';
+import 'package:fazbrike/src/shared/widgets/app_logo.dart';
 import 'package:fazbrike/src/shared/widgets/showcase_card.dart';
 
 /// API falsa com o mínimo que a home consome: categorias, promoções e itens.
@@ -107,6 +108,33 @@ void main() {
       expect(find.text('Menores preços'), findsOneWidget);
       expect(find.byType(ShowcaseCard), findsWidgets);
       expect(find.textContaining('120,00'), findsWidgets);
+    });
+
+    testWidgets('ao rolar, só a busca e as categorias ficam presas no topo', (tester) async {
+      await _pumpHome(tester);
+
+      final searchBefore = tester.getTopLeft(find.byType(TextField)).dy;
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+      final searchPinned = tester.getTopLeft(find.byType(TextField)).dy;
+
+      // A faixa sobe junto com a linha da marca até encostar no topo...
+      expect(searchPinned, lessThan(searchBefore));
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -900));
+      await tester.pumpAndSettle();
+
+      // ...e daí não sai mais, com busca e categorias sempre visíveis.
+      expect(tester.getTopLeft(find.byType(TextField)).dy, moreOrLessEquals(searchPinned, epsilon: 0.5));
+      expect(find.text('O que você procura?'), findsOneWidget);
+      expect(find.text('Todos'), findsOneWidget);
+
+      // A linha da marca, essa sim, rola embora.
+      final logoFinder = find.byType(AppLogo);
+      if (logoFinder.evaluate().isNotEmpty) {
+        expect(tester.getBottomLeft(logoFinder).dy, lessThanOrEqualTo(searchPinned));
+      }
     });
 
     testWidgets('a home usa vitrines próprias, não a lista da tela Explorar', (tester) async {

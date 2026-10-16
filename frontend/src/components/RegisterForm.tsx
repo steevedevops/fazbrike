@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import type { ApiError } from '@/lib/services/api';
@@ -21,6 +22,7 @@ type FieldErrors = {
   email?: string;
   password?: string;
   confirm?: string;
+  terms?: string;
 };
 
 type Strength = { score: number; label: string; bar: string; text: string };
@@ -48,6 +50,7 @@ export const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -77,6 +80,7 @@ export const RegisterForm: React.FC = () => {
     if (password.length < 6) errors.password = 'A senha deve ter pelo menos 6 caracteres.';
     if (confirmPassword.length === 0) errors.confirm = 'Confirme sua senha.';
     else if (password !== confirmPassword) errors.confirm = 'As senhas não coincidem.';
+    if (!acceptTerms) errors.terms = 'Aceite os Termos de uso e a Política de privacidade para continuar.';
 
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -86,7 +90,7 @@ export const RegisterForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await register(trimmedName, trimmedEmail, password);
+      await register(trimmedName, trimmedEmail, password, acceptTerms);
       router.push(`/verificar-email?email=${encodeURIComponent(trimmedEmail)}`);
     } catch (err) {
       setError((err as ApiError)?.message || 'Não foi possível criar a conta.');
@@ -221,14 +225,43 @@ export const RegisterForm: React.FC = () => {
           ) : null}
         </div>
 
+        <div>
+          <label htmlFor="accept-terms" className="flex items-start gap-3 type-meta text-muted">
+            <input
+              id="accept-terms"
+              type="checkbox"
+              checked={acceptTerms}
+              onChange={(e) => {
+                setAcceptTerms(e.target.checked);
+                clearFieldError('terms');
+              }}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--color-ink)]"
+              aria-invalid={fieldErrors.terms ? true : undefined}
+              aria-describedby={fieldErrors.terms ? 'register-terms-error' : undefined}
+            />
+            <span>
+              Li e aceito os{' '}
+              <Link href="/termos-de-uso" target="_blank" className="underline text-ink">
+                Termos de uso
+              </Link>{' '}
+              e a{' '}
+              <Link href="/politica-de-privacidade" target="_blank" className="underline text-ink">
+                Política de privacidade
+              </Link>
+              , e declaro ter 18 anos ou mais.
+            </span>
+          </label>
+          {fieldErrors.terms ? (
+            <p id="register-terms-error" className="type-meta text-danger mt-1.5">
+              {fieldErrors.terms}
+            </p>
+          ) : null}
+        </div>
+
         <button type="submit" disabled={loading} className={`${btnInkClass} w-full`}>
           {loading ? 'Criando conta...' : 'Criar conta'}
         </button>
       </form>
-
-      <p className="type-meta text-muted mt-5">
-        Ao criar uma conta você concorda com os termos de uso e a política de privacidade.
-      </p>
     </div>
   );
 };

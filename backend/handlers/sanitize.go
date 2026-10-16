@@ -9,6 +9,7 @@ func SanitizePublicUser(u *models.User) {
 	}
 	u.Email = ""
 	u.Role = ""
+	u.TermsAcceptedAt = nil
 }
 
 // SanitizeItemPublic clears nested user PII on a listing.

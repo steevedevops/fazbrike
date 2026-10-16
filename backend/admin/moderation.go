@@ -2,7 +2,9 @@ package admin
 
 import (
 	"fazbrike-backend/config"
+	"fazbrike-backend/handlers"
 	"fazbrike-backend/models"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -266,7 +268,19 @@ func HandleModerateReport(db *gorm.DB) gin.HandlerFunc {
 			}
 		}
 
+		// Retirar o anúncio encerra todas as denúncias abertas dele: sem isso,
+		// as demais ficavam na fila apontando para um anúncio já retirado.
+		reportQuery := func(tx *gorm.DB) *gorm.DB {
+			if req.Action == "reject_item" {
+				return tx.Model(&models.ItemReport{}).Where("item_id = ? AND status = ?", report.ItemID, "open")
+			}
+			return tx.Model(&models.ItemReport{}).Where("id = ? AND status = ?", report.ID, "open")
+		}
+		var reporterIDs []uint
 		if err := db.Transaction(func(tx *gorm.DB) error {
+			if err := reportQuery(tx).Distinct().Pluck("reporter_id", &reporterIDs).Error; err != nil {
+				return err
+			}
 			if req.Action == "reject_item" {
 				if err := tx.Model(&models.Item{}).Where("id = ?", report.ItemID).Updates(map[string]interface{}{
 					"status":           "rejected",
@@ -278,7 +292,7 @@ func HandleModerateReport(db *gorm.DB) gin.HandlerFunc {
 					return err
 				}
 			}
-			return tx.Model(&report).Updates(map[string]interface{}{
+			return reportQuery(tx).Updates(map[string]interface{}{
 				"status":         status,
 				"resolution":     req.Resolution,
 				"reviewed_by_id": adminID,
@@ -289,6 +303,50 @@ func HandleModerateReport(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Falha ao resolver denúncia"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"status": status})
+		notifyReportOutcome(db, report.ItemID, req.Action, req.Resolution, reporterIDs)
+		c.JSON(http.StatusOK, gin.H{"status": status, "closed_reports": len(reporterIDs)})
 	}
+}
+
+// notifyReportOutcome avisa quem denunciou que a análise terminou e, quando o
+// anúncio é retirado, informa o motivo ao anunciante. O texto da resolução só
+// vai para o anunciante: quem denunciou recebe uma mensagem genérica.
+func notifyReportOutcome(db *gorm.DB, itemID uint, action, resolution string, reporterIDs []uint) {
+	var item models.Item
+	if err := db.Select("id", "user_id", "title").First(&item, itemID).Error; err != nil {
+		return
+	}
+	id := item.ID
+	if action == "reject_item" {
+		handlers.NotifyUser(db, models.Notification{
+			UserID: item.UserID,
+			Type:   models.NotificationTypeSystem,
+			Title:  "Seu anúncio foi retirado",
+			Body:   truncateRunes(fmt.Sprintf("\"%s\" foi retirado após análise de denúncia. Motivo: %s", item.Title, resolution), 500),
+			Link:   "/perfil",
+			ItemID: &id,
+		})
+	}
+	body := "Analisamos sua denúncia e tomamos as medidas necessárias. Obrigado por ajudar a manter o Fazbrike seguro."
+	if action == "dismiss" {
+		body = "Analisamos sua denúncia e não encontramos violação às Regras de Publicação. Obrigado por nos avisar."
+	}
+	for _, reporterID := range reporterIDs {
+		handlers.NotifyUser(db, models.Notification{
+			UserID: reporterID,
+			Type:   models.NotificationTypeSystem,
+			Title:  "Sua denúncia foi analisada",
+			Body:   body,
+			Link:   "/ajuda",
+			ItemID: &id,
+		})
+	}
+}
+
+func truncateRunes(value string, max int) string {
+	runes := []rune(value)
+	if len(runes) <= max {
+		return value
+	}
+	return string(runes[:max-1]) + "…"
 }

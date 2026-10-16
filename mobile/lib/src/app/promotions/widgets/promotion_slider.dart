@@ -59,16 +59,29 @@ class _PromotionSliderState extends ConsumerState<PromotionSlider> {
     });
   }
 
+  /// Conta o clique e navega pelo destino confirmado pelo backend. Se a
+  /// chamada falhar, segue com o destino que veio na listagem — métrica nunca
+  /// segura a navegação.
   Future<void> _open(PromotionModel promotion) async {
-    final link = promotion.linkUrl.trim();
-    if (link.isEmpty) return;
-    if (link.startsWith('/')) {
-      context.push(link);
+    if (!promotion.target.isClickable) return;
+    final confirmed = await ref.read(promotionFormProvider.notifier).click(promotion.id);
+    final target = confirmed ?? promotion.target;
+    if (!mounted) return;
+
+    if (target.isInternal) {
+      context.push(target.route);
       return;
     }
-    final uri = Uri.tryParse(link);
+    final uri = Uri.tryParse(target.externalUrl);
     if (uri == null) return;
     await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  /// Marca como exibido o banner que está na tela (uma vez por sessão).
+  void _markSeen(int id) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(promotionFormProvider.notifier).registerImpressions([id]);
+    });
   }
 
   @override
@@ -80,6 +93,7 @@ class _PromotionSliderState extends ConsumerState<PromotionSlider> {
         final results = page.results;
         if (results.isEmpty) return _fallback;
         _ensureAutoPlay(results.length);
+        _markSeen(results[_current.clamp(0, results.length - 1)].id);
         return Column(
           children: [
             if (widget.header != null) widget.header!,
@@ -87,11 +101,17 @@ class _PromotionSliderState extends ConsumerState<PromotionSlider> {
               height: widget.height,
               child: PageView.builder(
                 controller: _controller,
-                onPageChanged: (index) => setState(() => _current = index),
+                onPageChanged: (index) {
+                  setState(() => _current = index);
+                  _markSeen(results[index].id);
+                },
                 itemCount: results.length,
                 itemBuilder: (_, index) => Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-                  child: _PromotionCard(promotion: results[index], onTap: () => _open(results[index])),
+                  child: _PromotionCard(
+                  promotion: results[index],
+                  onTap: results[index].target.isClickable ? () => _open(results[index]) : null,
+                ),
                 ),
               ),
             ),
@@ -113,7 +133,9 @@ class _PromotionCard extends StatelessWidget {
   const _PromotionCard({required this.promotion, required this.onTap});
 
   final PromotionModel promotion;
-  final VoidCallback onTap;
+
+  /// Nulo quando o banner é só informativo (sem destino cadastrado).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

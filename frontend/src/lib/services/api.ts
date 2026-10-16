@@ -136,6 +136,7 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
+  accept_terms: boolean;
 }
 
 export interface RegisterResponse {
@@ -281,6 +282,68 @@ export interface AppNotification {
 export interface NotificationsResponse {
   results: AppNotification[];
   unread: number;
+}
+
+export type PromotionTargetType =
+  | 'none'
+  | 'profile'
+  | 'item'
+  | 'category'
+  | 'search'
+  | 'page'
+  | 'external';
+
+/** Destino já resolvido pelo backend: o site navega direto para `route`. */
+export interface PromotionTarget {
+  type: PromotionTargetType;
+  route?: string;
+  label?: string;
+  external_url?: string;
+}
+
+export interface Promotion {
+  id: number;
+  title: string;
+  subtitle?: string;
+  image_url: string;
+  cta_label?: string;
+  target: PromotionTarget;
+}
+
+/** Campanha vista pelo dono, com métricas e motivo de estar fora do ar. */
+export interface MyPromotion extends Promotion {
+  target_type: PromotionTargetType;
+  target_id?: number | null;
+  target_value?: string;
+  is_active: boolean;
+  is_visible: boolean;
+  unavailable_for?: string;
+  click_count: number;
+  impression_count: number;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  created_at: string;
+}
+
+export interface PromotionRequest {
+  title: string;
+  subtitle?: string;
+  cta_label?: string;
+  image_url: string;
+  target_type: PromotionTargetType;
+  target_id?: number | null;
+  target_value?: string;
+  starts_at?: string | null;
+  ends_at?: string | null;
+}
+
+/** Leva para dentro da plataforma (rota do próprio site). */
+export function isInternalTarget(target?: PromotionTarget): boolean {
+  return !!target?.route && target.route.startsWith('/');
+}
+
+export function isClickableTarget(target?: PromotionTarget): boolean {
+  return isInternalTarget(target) || !!target?.external_url;
 }
 
 // Classe principal do serviço de API
@@ -603,6 +666,63 @@ class ApiService {
   async deleteNotification(id: number): Promise<void> {
     await this.axiosInstance.delete(`/notifications/${id}`);
   }
+  async getPromotions(): Promise<Promotion[]> {
+    const response = await this.axiosInstance.get<Promotion[]>('/promotions');
+    return response.data || [];
+  }
+
+  /** Conta o clique e devolve o destino confirmado na hora. */
+  async clickPromotion(id: number): Promise<PromotionTarget | null> {
+    try {
+      const response = await this.axiosInstance.post<{ target: PromotionTarget }>(`/promotions/${id}/click`);
+      return response.data?.target ?? null;
+    } catch {
+      // Métrica não pode impedir a navegação.
+      return null;
+    }
+  }
+
+  async registerPromotionImpressions(ids: number[]): Promise<void> {
+    if (ids.length === 0) return;
+    try {
+      await this.axiosInstance.post('/promotions/impressions', { ids });
+    } catch {
+      // Métrica é acessório.
+    }
+  }
+
+  async getMyPromotions(): Promise<{ results: MyPromotion[]; max_active: number }> {
+    const response = await this.axiosInstance.get<{ results: MyPromotion[]; max_active: number }>(
+      '/promotions/mine'
+    );
+    return { results: response.data?.results || [], max_active: response.data?.max_active ?? 2 };
+  }
+
+  async createPromotion(body: PromotionRequest): Promise<MyPromotion> {
+    const response = await this.axiosInstance.post<MyPromotion>('/promotions', body);
+    return response.data;
+  }
+
+  async updatePromotion(id: number, body: PromotionRequest): Promise<MyPromotion> {
+    const response = await this.axiosInstance.put<MyPromotion>(`/promotions/${id}`, body);
+    return response.data;
+  }
+
+  async setPromotionActive(id: number, isActive: boolean): Promise<MyPromotion> {
+    const response = await this.axiosInstance.put<MyPromotion>(`/promotions/${id}/status`, {
+      is_active: isActive,
+    });
+    return response.data;
+  }
+
+  async deletePromotion(id: number): Promise<void> {
+    await this.axiosInstance.delete(`/promotions/${id}`);
+  }
+
+  async uploadPromotionImage(file: File): Promise<string> {
+    const data = await this.uploadFile('/promotions/image', file);
+    return data?.image_url || '';
+  }
 }
 
 export type AttachmentKind = 'image' | 'file';
@@ -842,6 +962,76 @@ export async function reportItem(
   details?: string
 ): Promise<{ id: number; message: string }> {
   return apiService.post(`/items/${itemId}/reports`, { reason, details: details?.trim() || '' });
+}
+
+export type HelpCategory = 'conta' | 'anuncios' | 'compras' | 'seguranca' | 'denuncias' | 'privacidade';
+
+export interface HelpArticle {
+  id: number;
+  category: HelpCategory;
+  title: string;
+  body: string;
+  position: number;
+}
+
+export interface LegalDocumentSummary {
+  slug: string;
+  title: string;
+  summary: string;
+  version: string;
+  updated_at: string;
+}
+
+export interface LegalDocument extends LegalDocumentSummary {
+  id: number;
+  content: string;
+}
+
+export type SupportTopic =
+  | 'conta'
+  | 'anuncio'
+  | 'compra'
+  | 'denuncia'
+  | 'privacidade'
+  | 'exclusao_conta'
+  | 'outro';
+
+export interface SupportRequestInput {
+  name?: string;
+  email?: string;
+  topic: SupportTopic;
+  subject: string;
+  message: string;
+  item_id?: number;
+}
+
+export interface SupportRequest {
+  id: number;
+  topic: SupportTopic;
+  subject: string;
+  message: string;
+  status: 'open' | 'answered' | 'closed';
+  response: string;
+  responded_at: string | null;
+  created_at: string;
+}
+
+export async function fetchHelpArticles(params?: { category?: string; q?: string }): Promise<HelpArticle[]> {
+  const query = new URLSearchParams();
+  if (params?.category) query.set('category', params.category);
+  if (params?.q) query.set('q', params.q);
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  const data = await apiService.get<{ results: HelpArticle[] }>(`/help/articles${suffix}`);
+  return data.results ?? [];
+}
+
+export async function createSupportRequest(input: SupportRequestInput): Promise<{ id: number; message: string }> {
+  return apiService.post('/support/requests', input);
+}
+
+export async function fetchMySupportRequests(): Promise<SupportRequest[]> {
+  const data = await apiService.get<{ results: SupportRequest[] }>('/support/requests/mine');
+  return data.results ?? [];
 }
 
 export async function fetchStates(): Promise<StateOption[]> {

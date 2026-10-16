@@ -9,7 +9,8 @@ import 'package:fazbrike/src/app/auth/widgets/auth_panel.dart';
 Future<void> _pumpAuth(WidgetTester tester) async {
   // Tela de celular: no padrão 800x600 do teste o botão fica fora da área
   // visível e não recebe toque.
-  tester.view.physicalSize = const Size(1200, 2600);
+  // Altura cobre o cadastro inteiro (inclui a linha de aceite dos termos).
+  tester.view.physicalSize = const Size(1200, 3300);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -68,6 +69,32 @@ void main() {
       await tester.enterText(find.byType(TextFormField).at(2), 'senha12345');
       await tester.pumpAndSettle();
       expect(find.text('Força da senha: Forte'), findsOneWidget);
+    });
+
+    testWidgets('login social aparece nas duas abas com o aviso dos termos', (tester) async {
+      await _pumpAuth(tester);
+      expect(find.text('Continuar com Google'), findsOneWidget);
+      expect(find.text('Continuar com Apple'), findsOneWidget);
+      expect(find.textContaining('Ao continuar com Google ou Apple'), findsOneWidget);
+
+      await tester.tap(find.text('Criar conta').first);
+      await tester.pumpAndSettle();
+      expect(find.text('Continuar com Google'), findsOneWidget);
+      expect(find.text('Continuar com Apple'), findsOneWidget);
+    });
+
+    testWidgets('painel não estoura em tela estreita com fonte ampliada', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      tester.view.physicalSize = const Size(960, 4200); // 320 px lógicos de largura
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(const ProviderScope(
+        child: MaterialApp(home: Scaffold(body: SafeArea(child: AuthPanel()))),
+      ));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('senha curta no cadastro avisa o mínimo da API', (tester) async {

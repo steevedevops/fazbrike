@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LoginForm } from '@/components/LoginForm';
 import { RegisterForm } from '@/components/RegisterForm';
+import { SocialLoginButtons } from '@/components/SocialLoginButtons';
 import { PageSpinner } from '@/components/PageShell';
 import { useAuth } from '@/hooks/useAuth';
 import { Logo } from '@/components/Logo';
@@ -107,6 +108,7 @@ export default function LoginPage() {
             </div>
 
             {mode === 'login' ? <LoginForm /> : <RegisterForm />}
+            <SocialLoginButtons />
           </div>
         </div>
       </main>

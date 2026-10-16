@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { API_URL, SITE_URL } from "@/lib/site";
 import type { Item } from "@/lib/services/api";
+import { LEGAL_LINKS } from "@/lib/legal";
 
 // GET /items already filters to status="active" server-side, so sold/paused
 // listings are naturally excluded here without any extra filtering.
@@ -20,6 +21,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/buscar`, changeFrequency: "daily", priority: 0.8 },
     { url: `${SITE_URL}/ofertas`, changeFrequency: "daily", priority: 0.8 },
     { url: `${SITE_URL}/vender`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${SITE_URL}/ajuda`, changeFrequency: "weekly", priority: 0.4 },
+    ...LEGAL_LINKS.map((link) => ({
+      url: `${SITE_URL}${link.href}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.2,
+    })),
   ];
 
   const items = await fetchActiveItems();

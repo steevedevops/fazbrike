@@ -33,9 +33,9 @@ type notificationOut struct {
 	Actor     *notificationActor `json:"actor,omitempty"`
 }
 
-// PushSender entrega a notificação fora do app (FCM/APNs). Fica nil enquanto o
-// projeto de push não estiver configurado: nesse cenário a notificação existe
-// só na central in-app, e nada mais muda nos pontos que a geram.
+// PushSender entrega a notificação fora do app. main.go pluga o envio FCM
+// (pacote push); sem FIREBASE_CREDENTIALS ele não envia e a notificação existe
+// só na central in-app, sem mudar nada nos pontos que a geram.
 var PushSender func(tokens []models.DeviceToken, notification models.Notification)
 
 // EnsureNotificationIndexes cria os índices que sustentam a central: lista do

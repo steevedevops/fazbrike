@@ -29,6 +29,10 @@ func Register(db *gorm.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Dados inválidos. Verifique e-mail, nome e senha (mín. 8 caracteres)."})
 			return
 		}
+		if !req.AcceptTerms {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Para criar a conta, aceite os Termos de Uso e a Política de Privacidade."})
+			return
+		}
 
 		// Verificar se o usuário já existe
 		var existingUser models.User
@@ -52,10 +56,12 @@ func Register(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		err = db.Transaction(func(tx *gorm.DB) error {
+			acceptedAt := time.Now()
 			user = models.User{
-				Email:    req.Email,
-				Password: string(hashedPassword),
-				Name:     req.Name,
+				Email:           req.Email,
+				Password:        string(hashedPassword),
+				Name:            req.Name,
+				TermsAcceptedAt: &acceptedAt,
 			}
 			if err := tx.Create(&user).Error; err != nil {
 				return err

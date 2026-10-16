@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.fazbrike" "\0"
+            VALUE "CompanyName", "Fazbrike" "\0"
             VALUE "FileDescription", "fazbrike" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "fazbrike" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.fazbrike. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Fazbrike. All rights reserved." "\0"
             VALUE "OriginalFilename", "fazbrike.exe" "\0"
             VALUE "ProductName", "fazbrike" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

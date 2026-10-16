@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
+import { LEGAL_LINKS } from '@/lib/legal';
 import { containerClass, cx, metaClass, navLinkClass } from '@/lib/ui-classes';
 
 const columns = [
@@ -34,13 +35,21 @@ const columns = [
       { href: '/login', label: 'Entrar' },
     ],
   },
+  {
+    title: 'Ajuda',
+    links: [
+      { href: '/ajuda', label: 'Central de ajuda' },
+      { href: '/ajuda#contato', label: 'Fale com a gente' },
+      ...LEGAL_LINKS.map(({ href, label }) => ({ href, label })),
+    ],
+  },
 ];
 
 export const Footer: React.FC = () => {
   return (
     <footer className="bg-surface border-t border-[color:var(--color-border)] mt-auto">
       <div className={cx(containerClass, 'py-12')}>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
           <div className="col-span-2 md:col-span-1">
             <Logo href="/" markSize={28} />
             <p className={`${metaClass} mt-3 max-w-xs`}>

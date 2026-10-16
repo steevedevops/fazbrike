@@ -1,0 +1,77 @@
+# Fazbrike — instalação Nginx (host) + checklist Docker
+#
+# Repo no VPS: /home/steeve/apps/fazbrike
+# Mesmo servidor do jogame-platform — portas escolhidas para não colidir:
+#   jogame: 8006 (api) · 8088 (site) · 5050 (pgadmin)
+#   fazbrike: 8010 (api) · 3010 (site) · 8091 (admin) · 5051 (pgadmin)
+#
+# DNS (A/AAAA para este servidor):
+#   fazbrike.com.br · www.fazbrike.com.br · api.fazbrike.com.br · admin.fazbrike.com.br
+#
+# ---------------------------------------------------------------------------
+# 1) Docker (antes do nginx)
+# ---------------------------------------------------------------------------
+# docker network create fazbrike
+# cd /home/steeve/apps/fazbrike/docker
+# cp .env.example .env
+# # Preencher em docker/.env: JWT_SECRET (>= 32 chars), POSTGRES_PASSWORD,
+# # PGADMIN_DEFAULT_PASSWORD e ADMIN_EMAILS
+# make build && make up
+#
+# Conferir containers:
+# curl -s http://127.0.0.1:8010/api/health
+# curl -sI http://127.0.0.1:3010/
+# curl -s  http://127.0.0.1:8091/health
+#
+# ---------------------------------------------------------------------------
+# 2) Nginx — API (api.fazbrike.com.br)
+# ---------------------------------------------------------------------------
+
+sudo cp extras/nginx/nginx-backend /etc/nginx/sites-available/api.fazbrike.com.br
+sudo ln -s /etc/nginx/sites-available/api.fazbrike.com.br /etc/nginx/sites-enabled/
+
+# ---------------------------------------------------------------------------
+# 2b) Permissões — nginx (www-data) ler uploads no bind mount
+# ---------------------------------------------------------------------------
+# Sintoma típico: 403 em /api/uploads; error.log "Permission denied"
+
+sudo chmod o+x /home/steeve \
+  /home/steeve/apps \
+  /home/steeve/apps/fazbrike \
+  /home/steeve/apps/fazbrike/docker
+
+sudo chmod -R o+rX /home/steeve/apps/fazbrike/docker/uploads
+
+# Conferir (deve listar sem Permission denied):
+# sudo -u www-data ls /home/steeve/apps/fazbrike/docker/uploads
+
+# ---------------------------------------------------------------------------
+# 2c) Nginx — loja (fazbrike.com.br) e admin (admin.fazbrike.com.br)
+# ---------------------------------------------------------------------------
+
+sudo cp extras/nginx/nginx-site /etc/nginx/sites-available/fazbrike.com.br
+sudo ln -s /etc/nginx/sites-available/fazbrike.com.br /etc/nginx/sites-enabled/
+
+sudo cp extras/nginx/nginx-admin /etc/nginx/sites-available/admin.fazbrike.com.br
+sudo ln -s /etc/nginx/sites-available/admin.fazbrike.com.br /etc/nginx/sites-enabled/
+
+sudo nginx -t
+sudo systemctl reload nginx
+
+# ---------------------------------------------------------------------------
+# 3) TLS (certbot) — DNS dos domínios deve apontar para este servidor
+# ---------------------------------------------------------------------------
+
+sudo certbot --nginx -d api.fazbrike.com.br
+sudo certbot --nginx -d fazbrike.com.br -d www.fazbrike.com.br
+sudo certbot --nginx -d admin.fazbrike.com.br
+
+sudo systemctl reload nginx
+
+# ---------------------------------------------------------------------------
+# 4) Conferência
+# ---------------------------------------------------------------------------
+# curl -s  https://api.fazbrike.com.br/api/health
+# curl -sI https://fazbrike.com.br/
+# curl -sI https://admin.fazbrike.com.br/
+# App Flutter release: API base = https://api.fazbrike.com.br/api

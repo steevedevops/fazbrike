@@ -48,12 +48,50 @@ const ENUMS: Record<string, EnumOption[]> = {
 		{ value: 'resolved', label: 'Resolvida', tone: 'success', icon: 'check' },
 		{ value: 'dismissed', label: 'Descartada', tone: 'muted', icon: 'x' }
 	],
+	'item_report.reason': [
+		{ value: 'prohibited_item', label: 'Produto proibido', tone: 'danger', icon: 'shield' },
+		{ value: 'fraud', label: 'Suspeita de fraude', tone: 'danger', icon: 'shield' },
+		{ value: 'misleading', label: 'Informações enganosas', tone: 'warn', icon: 'tag' },
+		{ value: 'duplicate', label: 'Anúncio duplicado', tone: 'neutral', icon: 'archive' },
+		{ value: 'offensive', label: 'Conteúdo ofensivo', tone: 'danger', icon: 'x' },
+		{ value: 'other', label: 'Outro motivo', tone: 'muted', icon: 'tag' }
+	],
+	'help_article.category': [
+		{ value: 'conta', label: 'Conta e acesso', tone: 'neutral', icon: 'user' },
+		{ value: 'anuncios', label: 'Anúncios', tone: 'neutral', icon: 'tag' },
+		{ value: 'compras', label: 'Compras e negociação', tone: 'neutral', icon: 'box' },
+		{ value: 'seguranca', label: 'Segurança', tone: 'neutral', icon: 'shield' },
+		{ value: 'denuncias', label: 'Denúncias', tone: 'neutral', icon: 'shield' },
+		{ value: 'privacidade', label: 'Privacidade e dados', tone: 'neutral', icon: 'shield' }
+	],
+	'support_request.topic': [
+		{ value: 'conta', label: 'Minha conta', tone: 'neutral', icon: 'user' },
+		{ value: 'anuncio', label: 'Anúncio', tone: 'neutral', icon: 'tag' },
+		{ value: 'compra', label: 'Compra ou negociação', tone: 'neutral', icon: 'box' },
+		{ value: 'denuncia', label: 'Denúncia', tone: 'warn', icon: 'shield' },
+		{ value: 'privacidade', label: 'Privacidade e dados', tone: 'warn', icon: 'shield' },
+		{ value: 'exclusao_conta', label: 'Excluir minha conta', tone: 'danger', icon: 'x' },
+		{ value: 'outro', label: 'Outro assunto', tone: 'muted', icon: 'tag' }
+	],
+	'support_request.status': [
+		{ value: 'open', label: 'Aberto', tone: 'warn', icon: 'clock' },
+		{ value: 'answered', label: 'Respondido', tone: 'success', icon: 'check' },
+		{ value: 'closed', label: 'Encerrado', tone: 'muted', icon: 'archive' }
+	],
 	'item.listing_type': LISTING_TYPE_OPTIONS,
 	'item.condition': [
 		{ value: 'new', label: 'Novo', tone: 'success', icon: 'star' },
 		{ value: 'used_like_new', label: 'Usado — como novo', tone: 'neutral', icon: 'check' },
 		{ value: 'used_good', label: 'Usado — bom', tone: 'neutral', icon: 'check' },
 		{ value: 'used_fair', label: 'Usado — aceitável', tone: 'muted', icon: 'archive' }
+	],
+	'promotion.target_type': [
+		{ value: 'profile', label: 'Perfil do anunciante', tone: 'neutral', icon: 'user' },
+		{ value: 'item', label: 'Anúncio do anunciante', tone: 'neutral', icon: 'tag' },
+		{ value: 'category', label: 'Categoria', tone: 'neutral', icon: 'box' },
+		{ value: 'search', label: 'Busca por termo', tone: 'neutral', icon: 'box' },
+		{ value: 'page', label: 'Página da plataforma', tone: 'neutral', icon: 'home' },
+		{ value: 'external', label: 'Link externo', tone: 'warn', icon: 'shield' }
 	],
 	'boost.status': [
 		{ value: 'pending', label: 'Pendente', tone: 'warn', icon: 'clock' },

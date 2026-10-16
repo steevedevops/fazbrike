@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fazbrike/config.dart';
 import 'package:fazbrike/services/navigator_service.dart';
 import 'package:fazbrike/src/app/auth/controllers/auth_controller.dart';
+import 'package:fazbrike/src/app/notifications/controllers/push_notifications_controller.dart';
 import 'package:fazbrike/src/router.dart';
 import 'package:fazbrike/src/theme/app_theme.dart';
 import 'package:fazbrike/src/theme/theme_provider.dart';
@@ -13,6 +14,7 @@ class FazbrikeApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(authSessionProvider);
+    ref.watch(pushNotificationsProvider);
     NavigatorService.instance.router = appRouter;
     return MaterialApp.router(
       title: appName,

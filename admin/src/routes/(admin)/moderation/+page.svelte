@@ -134,8 +134,10 @@
 				toast('success', 'Anúncio rejeitado. O motivo ficará visível para o vendedor.');
 			} else {
 				await api.moderateReport(target.id, 'reject_item', reason.trim());
-				reports = reports.filter((report) => report.id !== target.id);
-				toast('success', 'Anúncio retirado e denúncia resolvida.');
+				// O backend encerra todas as denúncias abertas do anúncio retirado.
+				const itemId = reports.find((report) => report.id === target.id)?.item_id;
+				reports = reports.filter((report) => report.id !== target.id && report.item_id !== itemId);
+				toast('success', 'Anúncio retirado. Denúncias encerradas e anunciante avisado.');
 			}
 			reasonTarget = null;
 			reason = '';

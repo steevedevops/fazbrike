@@ -358,6 +358,9 @@ export default function PerfilPage() {
                 <Link href={`/usuario/${user.id}`} className={`${btnSecondaryClass} mt-4 ml-2 inline-flex`}>
                   Ver como público
                 </Link>
+                <Link href="/minhas-promocoes" className={`${btnSecondaryClass} mt-4 ml-2 inline-flex`}>
+                  Minhas promoções
+                </Link>
               </>
             ) : (
               <form onSubmit={onSave} className="space-y-4 max-w-xl">

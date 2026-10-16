@@ -68,11 +68,10 @@ function CatalogBrowse({
         action={<SortSelect fallback={sort} />}
       />
       <div className="flex items-start gap-6 lg:gap-8">
-        <aside className="hidden w-[19rem] shrink-0 lg:block">
-          <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-1 [scrollbar-width:thin]">
-            <div className={`${panelClass} bg-surface p-5`} aria-label="Filtros">
-              <ListingFilters lockedCategory={lockedCategory} />
-            </div>
+        {/* Painel rola junto com a página: sem barra de rolagem interna. */}
+        <aside className="hidden w-72 shrink-0 lg:block">
+          <div className={`${panelClass} bg-surface p-5`} aria-label="Filtros">
+            <ListingFilters lockedCategory={lockedCategory} />
           </div>
         </aside>
         <div className="min-w-0 flex-1">

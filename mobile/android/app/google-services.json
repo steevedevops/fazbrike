@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "589782858782",
+    "project_id": "fazbrike",
+    "storage_bucket": "fazbrike.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:589782858782:android:6c55aff33c974bfcad420f",
+        "android_client_info": {
+          "package_name": "br.com.fazbrike"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAOVXU-ckGDHO-2d47RWye9pkNSA3O52ks"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

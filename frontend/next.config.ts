@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Build autocontido para a imagem Docker de produção (docker/site/Dockerfile).
+  output: "standalone",
 };
 
 export default nextConfig;

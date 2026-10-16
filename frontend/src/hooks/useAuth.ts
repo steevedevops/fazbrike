@@ -9,6 +9,7 @@ import {
   LoginResponse,
 } from '@/lib/services/api';
 import { apiService } from '@/lib/services/api';
+import { signInWithSocial, type SocialProvider } from '@/lib/firebase';
 
 /**
  * Hook personalizado para gerenciar autenticação
@@ -58,10 +59,26 @@ export const useAuth = () => {
     }
   };
 
+  // Google/Apple: o Firebase confirma a identidade e o backend devolve o JWT
+  // do Fazbrike. Conta nova é criada já verificada, com o aceite dos termos
+  // exibido junto aos botões.
+  const socialLogin = async (provider: SocialProvider) => {
+    const { idToken, name } = await signInWithSocial(provider);
+    const data = await apiService.post<LoginResponse>('/auth/social', {
+      id_token: idToken,
+      name,
+      accept_terms: true,
+    });
+    setUser(data.user);
+    setToken(data.token);
+    apiService.setAuthToken(data.token);
+    localStorage.setItem('token', data.token);
+  };
+
   // Cadastro não loga direto: a conta fica pendente até o código enviado por
   // email ser confirmado em verifyEmailCode().
-  const register = async (name: string, email: string, password: string) => {
-    const userData: RegisterRequest = { name, email, password };
+  const register = async (name: string, email: string, password: string, acceptTerms: boolean) => {
+    const userData: RegisterRequest = { name, email, password, accept_terms: acceptTerms };
     return apiService.post<RegisterResponse>('/auth/register', userData);
   };
 
@@ -91,6 +108,7 @@ export const useAuth = () => {
     user,
     token,
     login,
+    socialLogin,
     register,
     verifyEmailCode,
     resendEmailCode,

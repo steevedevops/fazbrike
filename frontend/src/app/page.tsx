@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { PageShell } from '@/components/PageShell';
 import { HomeRail } from '@/components/HomeRail';
 import { AffiliateProductRail } from '@/components/AffiliateProductRail';
+import { PromotionCarousel } from '@/components/PromotionCarousel';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { CATEGORIES } from '@/lib/catalog';
 import {
@@ -82,6 +83,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <PromotionCarousel />
 
       <section className={`${containerClass} pt-8`} aria-label="Categorias">
         <div className="flex items-end justify-between gap-4 mb-4">

@@ -5,16 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { CATEGORIES, CONDITIONS, LISTING_TYPES, categoryLabel, conditionLabel, findCategory, parsePriceInput, parentOfSlug } from '@/lib/catalog';
 import { CityOption, StateOption, fetchCities, fetchStates } from '@/lib/services/api';
-import {
-  btnGhostClass,
-  btnSecondaryClass,
-  chipClass,
-  cx,
-  fieldClass,
-  labelClass,
-  metaClass,
-  panelClass,
-} from '@/lib/ui-classes';
+import { btnSecondaryClass, chipClass, cx, fieldClass, labelClass, metaClass, panelClass } from '@/lib/ui-classes';
 
 interface ListingFiltersProps {
   lockedCategory?: string;
@@ -25,63 +16,43 @@ const CATEGORY_PREVIEW_COUNT = 8;
 
 const PRICE_PRESETS = [
   { label: 'Até R$ 100', min: '', max: '100' },
-  { label: 'R$ 100 a R$ 500', min: '100', max: '500' },
-  { label: 'R$ 500 a R$ 2.000', min: '500', max: '2000' },
+  { label: 'R$ 100 a 500', min: '100', max: '500' },
+  { label: 'R$ 500 a 2.000', min: '500', max: '2000' },
   { label: 'Acima de R$ 2.000', min: '2000', max: '' },
 ];
 
-function FilterSection({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
+const LISTING_TYPE_SHORT: Record<string, string> = { item: 'Itens', vehicle: 'Veículos', property: 'Imóveis' };
+
+// Um único padrão para toda opção de filtro: chip monocromático, ativo em tinta.
+const filterChipClass = (active: boolean) =>
+  cx(
+    'inline-flex min-h-8 items-center justify-center rounded-pill border px-3 type-meta transition-colors',
+    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-1',
+    active
+      ? 'border-ink bg-ink font-medium text-white'
+      : 'border-[color:var(--color-border)] bg-surface text-ink hover:border-ink/30'
+  );
+
+const rowClass = (active: boolean) =>
+  cx(
+    'flex w-full min-h-9 items-center gap-2.5 rounded-control px-2.5 text-left type-meta transition-colors',
+    active ? 'bg-subtle font-semibold text-ink' : 'text-muted hover:bg-subtle hover:text-ink'
+  );
+
+function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-[color:var(--color-border)] pt-5 first:border-t-0 first:pt-0">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="type-meta font-semibold text-ink">{title}</h3>
-        {action}
-      </div>
+    <section className="border-t border-[color:var(--color-border)] pt-5">
+      <h3 className="mb-3 type-meta font-semibold uppercase tracking-wide text-ink">{title}</h3>
       {children}
     </section>
   );
 }
 
-function OptionPill({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+function GridIcon({ className }: { className?: string }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={selected}
-      className={cx(
-        'flex w-full min-h-11 items-center gap-2.5 rounded-control border px-3 text-left type-meta transition-colors',
-        selected
-          ? 'border-brand-500 bg-brand-50 text-ink font-medium'
-          : 'border-[color:var(--color-border)] text-ink hover:border-ink/25'
-      )}
-    >
-      <span
-        aria-hidden
-        className={cx(
-          'flex h-4 w-4 shrink-0 items-center justify-center rounded-pill border',
-          selected ? 'border-brand-500' : 'border-[color:var(--color-border)]'
-        )}
-      >
-        {selected ? <span className="h-2 w-2 rounded-pill bg-brand-500" /> : null}
-      </span>
-      {children}
-    </button>
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z" />
+    </svg>
   );
 }
 
@@ -126,12 +97,14 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
       .catch(() => setCities([]));
   }, [stateId]);
 
-  const pushParams = (mutate: (params: URLSearchParams) => void) => {
+  // keepOpen: na gaveta do celular, escolher o estado não fecha o painel
+  // (a pessoa ainda vai escolher a cidade).
+  const pushParams = (mutate: (params: URLSearchParams) => void, keepOpen = false) => {
     const params = new URLSearchParams(searchParams.toString());
     mutate(params);
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
-    onApplied?.();
+    if (!keepOpen) onApplied?.();
   };
 
   const setFilter = (key: string, value: string) => {
@@ -166,7 +139,7 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
     });
   };
 
-  const applyRange = (event: React.FormEvent) => {
+  const applyPrice = (event: React.FormEvent) => {
     event.preventDefault();
     pushParams((params) => {
       const min = parsePriceInput(minPrice);
@@ -175,17 +148,27 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
       else params.delete('min_price');
       if (max !== null) params.set('max_price', String(max));
       else params.delete('max_price');
+    });
+  };
+
+  const applyState = (value: string) => {
+    setStateId(value);
+    setCityId('');
+    pushParams((params) => {
       params.delete('location');
-      if (cityId) {
-        params.set('city_id', cityId);
-        if (stateId) params.set('state_id', stateId);
-      } else if (stateId) {
-        params.delete('city_id');
-        params.set('state_id', stateId);
-      } else {
-        params.delete('city_id');
-        params.delete('state_id');
-      }
+      params.delete('city_id');
+      if (value) params.set('state_id', value);
+      else params.delete('state_id');
+    }, true);
+  };
+
+  const applyCity = (value: string) => {
+    setCityId(value);
+    pushParams((params) => {
+      params.delete('location');
+      if (value) params.set('city_id', value);
+      else params.delete('city_id');
+      if (stateId) params.set('state_id', stateId);
     });
   };
 
@@ -223,11 +206,14 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
     return parent || findCategory(selectedCategory || '');
   })();
 
+  const priceSelected = (preset: { min: string; max: string }) =>
+    (searchParams.get('min_price') || '') === preset.min && (searchParams.get('max_price') || '') === preset.max;
+
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="type-meta font-semibold text-ink">Filtros</h2>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="type-title text-ink">Filtros</h2>
           <p className={metaClass}>
             {activeCount === 0
               ? 'Nenhum filtro aplicado'
@@ -238,7 +224,7 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
           <button
             type="button"
             onClick={clearFilters}
-            className="type-meta font-medium text-danger hover:underline"
+            className="shrink-0 type-meta font-medium text-ink underline underline-offset-4 hover:text-muted"
           >
             Limpar tudo
           </button>
@@ -246,14 +232,12 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
       </div>
 
       <FilterSection title="Tipo de anúncio">
-        <div className="inline-flex w-full rounded-pill bg-subtle p-1">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
+            aria-pressed={!selectedListingType}
             onClick={() => setFilter('listing_type', '')}
-            className={cx(
-              'flex-1 min-h-9 rounded-pill px-3 type-meta transition-colors',
-              !selectedListingType ? 'bg-surface font-semibold text-ink shadow-card' : 'text-muted hover:text-ink'
-            )}
+            className={filterChipClass(!selectedListingType)}
           >
             Todos
           </button>
@@ -263,13 +247,11 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
               <button
                 key={t.value}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setFilter('listing_type', active ? '' : t.value)}
-                className={cx(
-                  'flex-1 min-h-9 rounded-pill px-3 type-meta transition-colors',
-                  active ? 'bg-surface font-semibold text-ink shadow-card' : 'text-muted hover:text-ink'
-                )}
+                className={filterChipClass(active)}
               >
-                {t.value === 'item' ? 'Itens' : t.value === 'vehicle' ? 'Veículos' : 'Imóveis'}
+                {LISTING_TYPE_SHORT[t.value] ?? t.label}
               </button>
             );
           })}
@@ -278,78 +260,86 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
 
       <FilterSection title="Categoria">
         <div className="flex flex-col gap-0.5">
-          <button
-            type="button"
-            onClick={() => setCategory('')}
-            className={cx(
-              'flex min-h-10 items-center gap-2.5 rounded-control px-2.5 text-left type-meta transition-colors',
-              !selectedCategory ? 'bg-subtle font-semibold text-ink' : 'text-muted hover:bg-subtle hover:text-ink'
-            )}
-          >
-            Todas as categorias
+          <button type="button" onClick={() => setCategory('')} className={rowClass(!selectedCategory)}>
+            <GridIcon className="h-4 w-4 shrink-0" />
+            <span className="truncate">Todas as categorias</span>
           </button>
           {visibleCategories.map((category) => {
             const active =
               selectedCategory === category.slug ||
               !!category.children?.some((child) => child.slug === selectedCategory);
             return (
-              <button
-                key={category.slug}
-                type="button"
-                onClick={() => setCategory(category.slug)}
-                className={cx(
-                  'flex min-h-10 items-center gap-2.5 rounded-control px-2.5 text-left type-meta transition-colors',
-                  active ? 'bg-subtle font-semibold text-ink' : 'text-muted hover:bg-subtle hover:text-ink'
-                )}
+              <React.Fragment key={category.slug}>
+                <button type="button" onClick={() => setCategory(category.slug)} className={rowClass(active)}>
+                  <CategoryIcon slug={category.icon || category.slug} className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{category.name}</span>
+                </button>
+                {/* Subcategorias logo abaixo da categoria ativa, recuadas. */}
+                {active && subcategoryNode?.slug === category.slug && subcategoryNode.children?.length ? (
+                  <div className="flex flex-wrap gap-2 py-2 pl-9">
+                    {subcategoryNode.children.map((child) => {
+                      const childActive = selectedCategory === child.slug;
+                      return (
+                        <button
+                          key={child.slug}
+                          type="button"
+                          aria-pressed={childActive}
+                          onClick={() => setCategory(childActive ? subcategoryNode.slug : child.slug)}
+                          className={filterChipClass(childActive)}
+                        >
+                          {child.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </React.Fragment>
+            );
+          })}
+          {CATEGORIES.length > CATEGORY_PREVIEW_COUNT ? (
+            <button
+              type="button"
+              onClick={() => setShowAllCategories((value) => !value)}
+              aria-expanded={showAllCategories}
+              className="flex w-full min-h-9 items-center gap-2.5 rounded-control px-2.5 text-left type-meta font-medium text-ink transition-colors hover:bg-subtle"
+            >
+              <svg
+                className={cx('h-4 w-4 shrink-0 transition-transform', showAllCategories && 'rotate-180')}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
               >
-                <CategoryIcon
-                  slug={category.icon || category.slug}
-                  className={cx('h-4 w-4 shrink-0', active ? 'text-brand-500' : 'text-muted')}
-                />
-                {category.name}
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              {showAllCategories ? 'Mostrar menos' : `Ver todas (${CATEGORIES.length})`}
+            </button>
+          ) : null}
+        </div>
+      </FilterSection>
+
+      <FilterSection title="Preço">
+        <div className="flex flex-wrap gap-2">
+          {PRICE_PRESETS.map((preset) => {
+            const selected = priceSelected(preset);
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => applyPricePreset(selected ? { min: '', max: '' } : preset)}
+                className={filterChipClass(selected)}
+              >
+                {preset.label}
               </button>
             );
           })}
         </div>
-
-        {CATEGORIES.length > CATEGORY_PREVIEW_COUNT ? (
-          <button
-            type="button"
-            onClick={() => setShowAllCategories((value) => !value)}
-            className="mt-2 type-meta font-medium text-brand-500 hover:text-brand-600"
-          >
-            {showAllCategories ? 'Ver menos' : `Ver todas as categorias (${CATEGORIES.length})`}
-          </button>
-        ) : null}
-
-        {subcategoryNode?.children?.length ? (
-          <div className="mt-3 flex flex-wrap gap-2 border-t border-[color:var(--color-border)] pt-3">
-            {subcategoryNode.children.map((child) => {
-              const active = selectedCategory === child.slug;
-              return (
-                <button
-                  key={child.slug}
-                  type="button"
-                  onClick={() => setCategory(active ? subcategoryNode.slug : child.slug)}
-                  className={cx(
-                    chipClass,
-                    active && 'border-brand-500 bg-brand-50 font-medium'
-                  )}
-                >
-                  {child.name}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-      </FilterSection>
-
-      <FilterSection title="Preço">
-        <form onSubmit={applyRange} className="flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="filtro-preco-min" className={labelClass}>
-                Preço mín.
+        <form onSubmit={applyPrice} className="mt-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="min-w-0">
+              <label htmlFor="filtro-preco-min" className="sr-only">
+                Preço mínimo
               </label>
               <input
                 id="filtro-preco-min"
@@ -357,13 +347,13 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
                 inputMode="decimal"
                 value={minPrice}
                 onChange={(event) => setMinPrice(event.target.value)}
-                placeholder="R$"
+                placeholder="Mín. R$"
                 className={fieldClass}
               />
             </div>
-            <div>
-              <label htmlFor="filtro-preco-max" className={labelClass}>
-                Preço máx.
+            <div className="min-w-0">
+              <label htmlFor="filtro-preco-max" className="sr-only">
+                Preço máximo
               </label>
               <input
                 id="filtro-preco-max"
@@ -371,66 +361,43 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
                 inputMode="decimal"
                 value={maxPrice}
                 onChange={(event) => setMaxPrice(event.target.value)}
-                placeholder="R$"
+                placeholder="Máx. R$"
                 className={fieldClass}
               />
             </div>
           </div>
-          <button type="submit" className={cx(btnSecondaryClass, 'w-full')}>
+          <button type="submit" className={cx(btnSecondaryClass, 'mt-2 w-full')}>
             Aplicar preço
           </button>
         </form>
-
-        <div className="mt-3 flex flex-col gap-2">
-          {PRICE_PRESETS.map((preset) => {
-            const selected =
-              (searchParams.get('min_price') || '') === preset.min &&
-              (searchParams.get('max_price') || '') === preset.max;
-            return (
-              <OptionPill
-                key={preset.label}
-                selected={selected}
-                onClick={() => applyPricePreset(selected ? { min: '', max: '' } : preset)}
-              >
-                {preset.label}
-              </OptionPill>
-            );
-          })}
-        </div>
       </FilterSection>
 
       <FilterSection title="Condição">
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2">
           {CONDITIONS.map((condition) => {
             const active = selectedCondition === condition.value;
             return (
-              <OptionPill
+              <button
                 key={condition.value}
-                selected={active}
+                type="button"
+                aria-pressed={active}
                 onClick={() => setFilter('condition', active ? '' : condition.value)}
+                className={filterChipClass(active)}
               >
                 {condition.label}
-              </OptionPill>
+              </button>
             );
           })}
         </div>
       </FilterSection>
 
       <FilterSection title="Localização">
-        <form onSubmit={applyRange} className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3">
           <div>
             <label htmlFor="filtro-estado" className={labelClass}>
               Estado
             </label>
-            <select
-              id="filtro-estado"
-              value={stateId}
-              onChange={(event) => {
-                setStateId(event.target.value);
-                setCityId('');
-              }}
-              className={fieldClass}
-            >
+            <select id="filtro-estado" value={stateId} onChange={(event) => applyState(event.target.value)} className={fieldClass}>
               <option value="">Todos os estados</option>
               {states.map((s) => (
                 <option key={s.id} value={String(s.id)}>
@@ -446,11 +413,11 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
             <select
               id="filtro-cidade"
               value={cityId}
-              onChange={(event) => setCityId(event.target.value)}
+              onChange={(event) => applyCity(event.target.value)}
               disabled={!stateId}
-              className={fieldClass}
+              className={cx(fieldClass, 'disabled:cursor-not-allowed disabled:opacity-60')}
             >
-              <option value="">{stateId ? 'Todas do estado' : 'Escolha o estado'}</option>
+              <option value="">{stateId ? 'Todas do estado' : 'Escolha o estado primeiro'}</option>
               {cities.map((c) => (
                 <option key={c.id} value={String(c.id)}>
                   {c.name}
@@ -458,10 +425,7 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
               ))}
             </select>
           </div>
-          <button type="submit" className={cx(btnSecondaryClass, 'w-full')}>
-            Aplicar localização
-          </button>
-        </form>
+        </div>
       </FilterSection>
     </div>
   );
@@ -555,6 +519,9 @@ export function ActiveFilterChips({ lockedCategory }: { lockedCategory?: string 
 
 export function MobileFilters({ lockedCategory }: { lockedCategory?: string }) {
   const [open, setOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const activeCount = ['category', 'listing_type', 'condition', 'city_id', 'state_id', 'min_price', 'max_price']
+    .filter((key) => !!searchParams.get(key)).length;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -566,13 +533,16 @@ export function MobileFilters({ lockedCategory }: { lockedCategory?: string }) {
 
   return (
     <div className="mb-5 lg:hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={btnGhostClass}
-        aria-expanded={open}
-      >
+      <button type="button" onClick={() => setOpen(true)} className={chipClass} aria-expanded={open}>
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 6h16M7 12h10M10 18h4" />
+        </svg>
         Filtros
+        {activeCount > 0 ? (
+          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-pill bg-ink px-1.5 text-[11px] font-semibold text-white">
+            {activeCount}
+          </span>
+        ) : null}
       </button>
       {open ? (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -583,17 +553,18 @@ export function MobileFilters({ lockedCategory }: { lockedCategory?: string }) {
             onClick={() => setOpen(false)}
           />
           <aside className={`absolute inset-y-0 left-0 w-[min(100%,21rem)] overflow-y-auto ${panelClass} rounded-none border-y-0 border-l-0 bg-surface p-0 shadow-soft`}>
-            <div className="flex items-center justify-between gap-3 border-b border-[color:var(--color-border)] px-4 py-3">
-              <p className="type-meta font-semibold text-ink">Filtros</p>
+            {/* O título "Filtros" já vem do painel; aqui só o fechar. */}
+            <div className="flex justify-end px-4 pt-3">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="type-meta text-muted hover:text-ink"
+                className="inline-flex items-center gap-1.5 type-meta font-medium text-muted hover:text-ink"
               >
                 Fechar
+                <span aria-hidden>×</span>
               </button>
             </div>
-            <div className="p-4">
+            <div className="px-4 pb-6 pt-1">
               <ListingFilters lockedCategory={lockedCategory} onApplied={() => setOpen(false)} />
             </div>
           </aside>
