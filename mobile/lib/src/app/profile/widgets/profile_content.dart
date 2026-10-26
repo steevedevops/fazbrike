@@ -46,7 +46,7 @@ class ProfileContent extends ConsumerWidget {
             Stack(clipBehavior: Clip.none, children: [
               SizedBox(height: 170, width: double.infinity, child: data.profile.bannerUrl.isEmpty
                   ? const ColoredBox(color: Color(0xFFE4E4E4))
-                  : RemoteImage(url: data.profile.bannerUrl, fallbackAsset: 'lib/assets/images/categories/outros.jpg')),
+                  : RemoteImage(url: data.profile.bannerUrl)),
               Positioned(right: 12, bottom: 12, child: IconButton.filledTonal(onPressed: () => _pick(context, ref, true), tooltip: 'Alterar capa', icon: const Icon(Icons.photo_camera_outlined))),
             ]),
             Padding(
@@ -58,7 +58,7 @@ class ProfileContent extends ConsumerWidget {
                       radius: 42,
                       child: data.profile.avatarUrl.isEmpty
                           ? Text(data.user.name.characters.first.toUpperCase())
-                          : ClipOval(child: RemoteImage(url: data.profile.avatarUrl, fallbackAsset: 'lib/assets/images/categories/outros.jpg', width: 84, height: 84)),
+                          : ClipOval(child: RemoteImage(url: data.profile.avatarUrl, width: 84, height: 84)),
                     ),
                     Positioned(right: 0, bottom: 0, child: InkWell(onTap: () => _pick(context, ref, false), child: const CircleAvatar(radius: 14, child: Icon(Icons.edit, size: 15)))),
                   ]),
@@ -112,7 +112,7 @@ class _OwnedItemTile extends ConsumerWidget {
           child: Column(children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: RemoteImage(url: item.imageUrl, fallbackAsset: categoryAsset(item.category), width: 72, height: 72)),
+              leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: RemoteImage(url: item.imageUrl, width: 72, height: 72)),
               title: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis),
               subtitle: Text('${formatPrice(item.price)} · ${item.status == 'active' ? 'Ativo' : item.status == 'sold' ? 'Vendido' : 'Pausado'}'),
               onTap: () => context.push('/produto/${item.id}'),

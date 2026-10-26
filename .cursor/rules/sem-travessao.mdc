@@ -1,0 +1,12 @@
+---
+description: Proibe travessão e meia-risca em qualquer texto do agente
+alwaysApply: true
+---
+
+# Sem travessão
+
+Nunca escreva o caractere travessão (U+2014) nem a meia-risca (U+2013). Vale para resposta no chat, código, comentário, string de interface, commit, documentação e regra.
+
+No lugar, use ponto, vírgula, dois-pontos ou parênteses. O hífen comum (U+002D) continua válido em palavra composta, número negativo e intervalo técnico.
+
+Antes de entregar, confira o texto. Se um desses caracteres entrou, troque e só então responda.

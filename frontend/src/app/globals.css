@@ -1,42 +1,42 @@
 @import "tailwindcss";
 
 :root {
-  /* Fazbrike Design System v1 — terracota / carvão / creme */
-  --color-brand-50: #F8E8DE;
-  --color-brand-500: #C45C26;
-  --color-brand-600: #A3481C;
-  --color-ink: #1C1917;
-  --color-muted: #78716C;
-  --color-canvas: #FAF8F5;
+  /* Vitrine: canvas cinza, superfície branca, tinta carvão. */
+  --color-brand-50: #E4E6EB;
+  --color-brand-500: #1C1E21;
+  --color-brand-600: #000000;
+  --color-ink: #1C1E21;
+  --color-muted: #65676B;
+  --color-canvas: #F0F2F5;
   --color-surface: #FFFFFF;
-  --color-subtle: #F3EFE8;
-  --color-border: #E7E0D6;
-  --color-sage: #6B8F71;
+  --color-subtle: #E4E6EB;
+  --color-border: #DADDE1;
+  --color-sage: #65676B;
   --color-success: #3F7D4E;
   --color-danger: #B42318;
 
-  /* Aliases legados (apontam para a marca nova) */
+  /* Aliases legados (apontam para a tinta). */
   --color-primary: var(--color-ink);
   --color-secondary: var(--color-sage);
   --color-accent: var(--color-brand-500);
   --color-background: var(--color-canvas);
 
-  --color-neutral-50: #FAF8F5;
-  --color-neutral-100: #F3EFE8;
-  --color-neutral-200: #E7E0D6;
-  --color-neutral-300: #D6CEC2;
-  --color-neutral-400: #A8A29E;
-  --color-neutral-500: #78716C;
-  --color-neutral-600: #57534E;
-  --color-neutral-700: #44403C;
-  --color-neutral-800: #292524;
-  --color-neutral-900: #1C1917;
+  --color-neutral-50: #F0F2F5;
+  --color-neutral-100: #E4E6EB;
+  --color-neutral-200: #DADDE1;
+  --color-neutral-300: #CED0D4;
+  --color-neutral-400: #B0B3B8;
+  --color-neutral-500: #65676B;
+  --color-neutral-600: #4B4F56;
+  --color-neutral-700: #3A3B3C;
+  --color-neutral-800: #242526;
+  --color-neutral-900: #1C1E21;
 
-  --shadow-soft: 0 8px 24px 0 rgba(28, 25, 23, 0.08);
-  --shadow-card: 0 4px 16px 0 rgba(28, 25, 23, 0.06);
+  --shadow-soft: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.12);
   --shadow-primary: var(--shadow-soft);
   --shadow-secondary: var(--shadow-card);
-  --shadow-accent: 0 4px 14px 0 rgba(196, 92, 38, 0.18);
+  --shadow-accent: 0 1px 2px 0 rgba(0, 0, 0, 0.16);
 
   --radius-chip: 11px;
   --radius-control: 12px;
@@ -70,35 +70,35 @@
 }
 
 @theme {
-  --color-brand-50: #F8E8DE;
-  --color-brand-100: #F8E8DE;
-  --color-brand-500: #C45C26;
-  --color-brand-600: #A3481C;
-  --color-ink: #1C1917;
-  --color-muted: #78716C;
-  --color-canvas: #FAF8F5;
+  --color-brand-50: #E4E6EB;
+  --color-brand-100: #DADDE1;
+  --color-brand-500: #1C1E21;
+  --color-brand-600: #000000;
+  --color-ink: #1C1E21;
+  --color-muted: #65676B;
+  --color-canvas: #F0F2F5;
   --color-surface: #FFFFFF;
-  --color-subtle: #F3EFE8;
-  --color-border-token: #E7E0D6;
-  --color-sage: #6B8F71;
+  --color-subtle: #E4E6EB;
+  --color-border-token: #DADDE1;
+  --color-sage: #65676B;
   --color-success: #3F7D4E;
   --color-danger: #B42318;
 
-  --color-primary-50: #F8E8DE;
-  --color-primary-500: #C45C26;
-  --color-primary-600: #A3481C;
-  --color-accent-500: #C45C26;
-  --color-accent-600: #A3481C;
-  --color-secondary-500: #6B8F71;
-  --color-secondary-600: #55765C;
+  --color-primary-50: #E4E6EB;
+  --color-primary-500: #1C1E21;
+  --color-primary-600: #000000;
+  --color-accent-500: #1C1E21;
+  --color-accent-600: #000000;
+  --color-secondary-500: #65676B;
+  --color-secondary-600: #4B4F56;
 
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --radius-chip: 11px;
   --radius-control: 12px;
   --radius-card: 12px;
   --radius-pill: 9999px;
-  --shadow-soft: 0 8px 24px 0 rgba(28, 25, 23, 0.08);
-  --shadow-card: 0 4px 16px 0 rgba(28, 25, 23, 0.06);
+  --shadow-soft: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.12);
   --motion-instant: 150ms;
   --motion-fast: 200ms;
 }
@@ -129,6 +129,14 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
+}
+
+.rail-scroll {
+  scrollbar-width: none;
+}
+
+.rail-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 a {

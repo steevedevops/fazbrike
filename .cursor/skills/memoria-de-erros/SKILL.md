@@ -127,6 +127,12 @@ Formato de cada entrada:
 - **Regra:** NUNCA rodar `next build` com o dev ativo. Antes, conferir
   `ss -ltnp | grep 3003`; se estiver no ar, buildar numa cópia ou avisar e reiniciar o dev depois.
 
+## Travessão no texto
+- **Causa:** o agente usou travessão (U+2014) como pontuação em respostas e em cópia de interface.
+- **Sintoma:** o texto fica com um traço longo no meio da frase, fora do padrão do projeto.
+- **Correção:** trocar por ponto, vírgula, dois-pontos ou parênteses.
+- **Regra:** NUNCA escrever travessão (U+2014) nem meia-risca (U+2013) em chat, código, comentário, interface ou commit. Hífen comum (U+002D) segue permitido.
+
 ## Checklist final (sempre)
 - [ ] `cd frontend && npx tsc --noEmit`
 - [ ] `cd frontend && npx next build --no-lint`

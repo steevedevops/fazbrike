@@ -11,8 +11,6 @@ import 'package:fazbrike/src/theme/app_colors.dart';
 import 'package:fazbrike/src/theme/app_radius.dart';
 import 'package:fazbrike/src/theme/app_spacing.dart';
 
-const _promotionFallbackAsset = 'lib/assets/images/highlights/highlight-deal.jpg';
-
 /// Slider das promoções cadastradas na plataforma. Some da home quando não há
 /// campanha ativa — nada de espaço vazio ou mensagem de erro no topo da loja.
 class PromotionSlider extends ConsumerStatefulWidget {
@@ -148,7 +146,7 @@ class _PromotionCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            RemoteImage(url: promotion.imageUrl, fallbackAsset: _promotionFallbackAsset),
+            RemoteImage(url: promotion.imageUrl),
             // Véu escuro fixo: garante contraste do texto sobre qualquer foto.
             Container(color: AppColors.ink.withValues(alpha: .5)),
             Padding(

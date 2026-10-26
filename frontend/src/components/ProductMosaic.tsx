@@ -1,5 +1,6 @@
 import React from 'react';
 import { ProductTile } from '@/components/ProductTile';
+import { listingPlace } from '@/lib/listingMeta';
 import { listingMosaicClass, listingTileRowClass } from '@/lib/ui-classes';
 
 export interface MosaicItem {
@@ -9,6 +10,8 @@ export interface MosaicItem {
   image_url?: string;
   category?: string;
   location?: string;
+  created_at?: string;
+  city?: { name?: string; state?: { code?: string } | null } | null;
   views_count?: number;
 }
 
@@ -29,7 +32,8 @@ function tileFor(item: MosaicItem) {
       name={item.title}
       imageUrl={item.image_url}
       category={item.category}
-      location={item.location}
+      location={listingPlace(item.city, item.location)}
+      createdAt={item.created_at}
       viewsCount={item.views_count || 0}
     />
   );

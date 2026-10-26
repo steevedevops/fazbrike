@@ -242,11 +242,14 @@ void main() {
       await tester.tap(find.text('Criar conta').first);
       await tester.pumpAndSettle();
 
-      final fields = find.byType(TextFormField);
-      await tester.enterText(fields.at(0), 'Maria Silva');
-      await tester.enterText(fields.at(1), 'maria@exemplo.com');
-      await tester.enterText(fields.at(2), 'senha12345');
-      await tester.enterText(fields.at(3), 'senha12345');
+      await tester.enterText(find.byType(TextFormField).at(0), 'Maria Silva');
+      await tester.enterText(find.byType(TextFormField).at(1), 'maria@exemplo.com');
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).at(0), 'senha12345');
+      await tester.enterText(find.byType(TextFormField).at(1), 'senha12345');
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(FilledButton, 'Criar conta'));
       await tester.pumpAndSettle();
 
@@ -260,11 +263,14 @@ void main() {
       await tester.tap(find.text('Criar conta').first);
       await tester.pumpAndSettle();
 
-      final fields = find.byType(TextFormField);
-      await tester.enterText(fields.at(0), 'Maria Silva');
-      await tester.enterText(fields.at(1), 'maria@exemplo.com');
-      await tester.enterText(fields.at(2), 'senha12345');
-      await tester.enterText(fields.at(3), 'senha12345');
+      await tester.enterText(find.byType(TextFormField).at(0), 'Maria Silva');
+      await tester.enterText(find.byType(TextFormField).at(1), 'maria@exemplo.com');
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).at(0), 'senha12345');
+      await tester.enterText(find.byType(TextFormField).at(1), 'senha12345');
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byType(Checkbox));
       await tester.pump();
       await tester.tap(find.widgetWithText(FilledButton, 'Criar conta'));

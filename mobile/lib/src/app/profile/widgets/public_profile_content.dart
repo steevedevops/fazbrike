@@ -36,7 +36,7 @@ class _PublicProfileContentState extends ConsumerState<PublicProfileContent> {
               title: Text(profile.name),
               flexibleSpace: FlexibleSpaceBar(background: profile.bannerUrl.isEmpty
                   ? const ColoredBox(color: Color(0xFFE4E4E4))
-                  : RemoteImage(url: profile.bannerUrl, fallbackAsset: 'lib/assets/images/categories/outros.jpg')),
+                  : RemoteImage(url: profile.bannerUrl)),
             ),
             SliverPadding(
               padding: const EdgeInsets.all(AppSpacing.lg),
@@ -46,7 +46,7 @@ class _PublicProfileContentState extends ConsumerState<PublicProfileContent> {
                     radius: 42,
                     child: profile.avatarUrl.isEmpty
                         ? Text(profile.name.characters.first.toUpperCase())
-                        : ClipOval(child: RemoteImage(url: profile.avatarUrl, fallbackAsset: 'lib/assets/images/categories/outros.jpg', width: 84, height: 84)),
+                        : ClipOval(child: RemoteImage(url: profile.avatarUrl, width: 84, height: 84)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

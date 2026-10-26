@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PageShell } from '@/components/PageShell';
 import { ProductCard } from '@/components/ProductCard';
+import { listingPlace } from '@/lib/listingMeta';
+import { ListingImage } from '@/components/ListingImage';
 import { useItems } from '@/hooks/useItems';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -18,16 +20,13 @@ import {
   fetchItemComments,
   registerItemView,
   reportItem,
-  resolveImageUrl,
   unfavoriteItem,
 } from '@/lib/services/api';
 import {
   LISTING_TYPES,
-  categoryCover,
   categoryLabel,
   conditionLabel,
   formatPrice,
-  listingImageSrc,
   parentOfSlug,
   parseAttrs,
 } from '@/lib/catalog';
@@ -305,19 +304,16 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
 
   const attrs = useMemo(() => parseAttrs<Record<string, string>>(item.attrs), [item.attrs]);
 
-  const imageUrl = (() => {
-    const raw = listingImageSrc(item.image_url, item.category);
-    return raw.startsWith('/categories/') ? raw : resolveImageUrl(raw);
-  })();
-  const gallery = (() => {
+  const gallery = useMemo(() => {
     const fromImages = (item.images || [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order || a.id - b.id)
-      .map((img) => resolveImageUrl(img.url))
+      .map((img) => (img.url || '').trim())
       .filter(Boolean);
     if (fromImages.length > 0) return fromImages;
-    return [imageUrl];
-  })();
+    const cover = (item.image_url || '').trim();
+    return cover ? [cover] : [];
+  }, [item.images, item.image_url]);
   const isOwner = !!(user && item.user_id === user.id);
   const sellerName = item.user?.name || 'Vendedor';
   const sellerInitial = sellerName.charAt(0).toUpperCase();
@@ -492,14 +488,11 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
             }
           >
             <div className={`${panelClass} overflow-hidden bg-subtle min-h-[280px] sm:min-h-[420px]`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={gallery[Math.min(activeImage, gallery.length - 1)]}
+              <ListingImage
+                src={gallery[Math.min(activeImage, Math.max(gallery.length - 1, 0))]}
                 alt={item.title}
                 className="w-full h-full max-h-[520px] object-cover"
-                onError={(event) => {
-                  event.currentTarget.src = categoryCover(item.category);
-                }}
+                emptyClassName="min-h-[280px] sm:min-h-[420px]"
               />
             </div>
             {gallery.length > 1 ? (
@@ -516,14 +509,11 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
                       }}
                       className={`${panelClass} overflow-hidden bg-subtle relative min-h-[130px] sm:min-h-[200px]`}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <ListingImage
                         src={src}
                         alt=""
                         className="w-full h-full object-cover"
-                        onError={(event) => {
-                          event.currentTarget.src = categoryCover(item.category);
-                        }}
+                        emptyClassName="min-h-[130px] sm:min-h-[200px]"
                       />
                       {idx === 2 && gallery.length > 3 ? (
                         <span className="absolute inset-0 flex items-center justify-center bg-ink/50 type-body text-white font-medium">
@@ -786,6 +776,11 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+            {gallery.length === 0 ? (
+              <div className={`${panelClass} overflow-hidden aspect-[4/3]`}>
+                <ListingImage src="" alt={item.title} emptyClassName="min-h-0 aspect-[4/3]" />
+              </div>
+            ) : null}
             {gallery.map((src, idx) => (
               <button
                 key={idx}
@@ -795,8 +790,7 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
                   activeImage === idx ? 'ring-2 ring-brand-500' : ''
                 }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" className="w-full h-full object-cover" />
+                <ListingImage src={src} alt="" className="w-full h-full object-cover" emptyClassName="min-h-0 aspect-[4/3]" />
               </button>
             ))}
           </div>
@@ -819,7 +813,8 @@ export function ProductDetailClient({ initialItem }: ProductDetailClientProps) {
                     name={rel.title}
                     imageUrl={rel.image_url}
                     category={rel.category}
-                    location={rel.location}
+                    location={listingPlace(rel.city, rel.location)}
+                    createdAt={rel.created_at}
                     condition={rel.condition}
                     viewsCount={rel.views_count || 0}
                     favoritesCount={rel.favorites_count || 0}

@@ -2,18 +2,36 @@
 	import { page } from '$app/state';
 	import { currentUser, logout } from '$lib/auth';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import type { CollectionMeta } from '$lib/types';
 	import { loadModerationSummary, moderationSummary } from '$lib/moderation';
+	import { activeSectionId, buildSections, itemIsActive } from '$lib/nav';
+	import Icon from './Icon.svelte';
 
-	let { collections }: { collections: CollectionMeta[] } = $props();
+	let {
+		collections,
+		mobileOpen = false,
+		onNavigate
+	}: {
+		collections: CollectionMeta[];
+		mobileOpen?: boolean;
+		onNavigate?: () => void;
+	} = $props();
 
 	let query = $state('');
+	let picked = $state<string | null>(null);
+	let lastPath = '';
 
-	const filtered = $derived.by(() => {
-		const q = query.toLowerCase().trim();
-		if (!q) return collections;
-		return collections.filter((c) => c.label.toLowerCase().includes(q));
+	const sections = $derived(buildSections(collections));
+	const routeSection = $derived(activeSectionId(sections, page.url.pathname));
+	const active = $derived(
+		sections.find((section) => section.id === (picked ?? routeSection ?? 'painel')) ?? sections[0]
+	);
+	const items = $derived.by(() => {
+		if (!active) return [];
+		const q = query.trim().toLowerCase();
+		if (!q) return active.items;
+		return active.items.filter((item) => item.label.toLowerCase().includes(q));
 	});
 
 	function logoutClick() {
@@ -21,11 +39,10 @@
 		goto('/login');
 	}
 
-	const isOverview = $derived(page.url.pathname === '/');
-	const isModeration = $derived(page.url.pathname.startsWith('/moderation'));
-	const isVisits = $derived(page.url.pathname.startsWith('/visits'));
-	const isBackup = $derived(page.url.pathname.startsWith('/backup'));
-	const isSettings = $derived(page.url.pathname.startsWith('/settings'));
+	function select(id: string) {
+		picked = id;
+		query = '';
+	}
 
 	onMount(() => {
 		const refresh = () => void loadModerationSummary().catch(() => undefined);
@@ -33,110 +50,80 @@
 		const timer = window.setInterval(refresh, 30000);
 		return () => window.clearInterval(timer);
 	});
+
+	$effect(() => {
+		const path = page.url.pathname;
+		untrack(() => {
+			if (path === lastPath) return;
+			lastPath = path;
+			picked = null;
+			query = '';
+		});
+	});
 </script>
 
-<aside class="sidebar">
-	<a class="brand" href="/">
-		<span class="mark">F</span>
-		<span class="brand-copy">
-			<strong>Fazbrike</strong>
-			<small>Admin</small>
-		</span>
-	</a>
-
-	<nav class="nav" aria-label="Principal">
-		<a class="nav-item" class:active={isOverview} href="/">
-			<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<path d="M2 2.5h5v5H2v-5Zm7 0h5v5H9v-5ZM2 9.5h5v5H2v-5Zm7 0h5v5H9v-5Z" stroke="currentColor" stroke-width="1.25" />
-			</svg>
-			Visão geral
-		</a>
-		<a class="nav-item" class:active={isModeration} href="/moderation">
-			<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<path d="M3.5 6.5a4.5 4.5 0 0 1 9 0v2.2l1.2 2.1H2.3l1.2-2.1V6.5Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" />
-				<path d="M6.5 12.8a1.7 1.7 0 0 0 3 0" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
-			</svg>
-			<span>Moderação</span>
-			{#if $moderationSummary.total > 0}
-				<span class="alert-count" aria-label={`${$moderationSummary.total} alertas pendentes`}>
-					{$moderationSummary.total > 99 ? '99+' : $moderationSummary.total}
-				</span>
-			{/if}
-		</a>
-		<a class="nav-item" class:active={isVisits} href="/visits">
-			<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<path d="M1.5 13.5v-4M6 13.5v-7M10.5 13.5v-9M15 13.5v-2.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
-			</svg>
-			Visitas
-		</a>
-		<a class="nav-item" class:active={isBackup} href="/backup">
-			<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<path d="M2 4.5c0-1.1 2.7-2 6-2s6 .9 6 2-2.7 2-6 2-6-.9-6-2Z" stroke="currentColor" stroke-width="1.25" />
-				<path d="M2 4.5V11.5c0 1.1 2.7 2 6 2s6-.9 6-2V4.5" stroke="currentColor" stroke-width="1.25" />
-				<path d="M2 8c0 1.1 2.7 2 6 2s6-.9 6-2" stroke="currentColor" stroke-width="1.25" />
-			</svg>
-			Backup
-		</a>
-		<a class="nav-item" class:active={isSettings} href="/settings">
-			<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<circle cx="8" cy="8" r="2.25" stroke="currentColor" stroke-width="1.25" />
-				<path
-					d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"
-					stroke="currentColor"
-					stroke-width="1.25"
-					stroke-linecap="round"
-				/>
-			</svg>
-			Configurações
-		</a>
-	</nav>
-
-	<div class="collections">
-		<div class="section-head">
-			<span>Coleções</span>
-			<span class="count">{collections.length}</span>
-		</div>
-		{#if collections.length > 5}
-			<label class="search">
-				<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-					<circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.25" />
-					<path d="M10.5 10.5 13.5 13.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
-				</svg>
-				<input bind:value={query} type="search" placeholder="Filtrar" aria-label="Filtrar coleções" />
-			</label>
-		{/if}
-		<ul>
-			{#each filtered as c (c.name)}
-				<li>
-					<a
-						class="col"
-						class:active={page.url.pathname.startsWith(`/collections/${c.name}`)}
-						href={`/collections/${c.name}`}
-					>
-						{c.label}
-					</a>
-				</li>
+<aside class="sidebar" class:open={mobileOpen}>
+	<div class="rail" aria-label="Categorias">
+		<a class="mark" href="/" title="Início" onclick={() => onNavigate?.()}>F</a>
+		<nav class="rail-nav">
+			{#each sections as section (section.id)}
+				<button
+					type="button"
+					class="rail-btn"
+					class:active={active?.id === section.id}
+					title={section.label}
+					aria-label={section.label}
+					aria-current={active?.id === section.id ? 'true' : undefined}
+					onclick={() => select(section.id)}
+				>
+					<Icon name={section.icon} size={20} />
+					{#if section.id === 'painel' && $moderationSummary.total > 0}
+						<span class="rail-badge" aria-label={`${$moderationSummary.total} alertas pendentes`}>
+							{$moderationSummary.total > 9 ? '9+' : $moderationSummary.total}
+						</span>
+					{/if}
+				</button>
 			{/each}
-			{#if filtered.length === 0}
-				<li class="empty">{collections.length === 0 ? 'Carregando…' : 'Nada encontrado'}</li>
-			{/if}
-		</ul>
+		</nav>
+		<div class="rail-foot">
+			<span class="avatar" title={$currentUser?.name ?? 'Admin'}>
+				{$currentUser?.name?.charAt(0).toUpperCase() ?? 'A'}
+			</span>
+			<button type="button" class="rail-btn out" onclick={logoutClick} title="Sair" aria-label="Sair">
+				<Icon name="log-out" size={18} />
+			</button>
+		</div>
 	</div>
 
-	<div class="foot">
-		<div class="user">
-			<span class="avatar">{$currentUser?.name?.charAt(0).toUpperCase() ?? 'A'}</span>
-			<div class="meta">
-				<span class="name">{$currentUser?.name ?? 'Admin'}</span>
-				<span class="email">{$currentUser?.email ?? ''}</span>
-			</div>
-		</div>
-		<button type="button" class="out" onclick={logoutClick} title="Sair" aria-label="Sair">
-			<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-				<path d="M6 2H3.5A1.5 1.5 0 0 0 2 3.5v9A1.5 1.5 0 0 0 3.5 14H6" stroke="currentColor" stroke-width="1.25" />
-				<path d="M10.5 11.5 14 8l-3.5-3.5M14 8H6" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
-			</svg>
-		</button>
+	<div class="panel">
+		{#if active}
+			<header class="panel-head">
+				<h2>{active.label}</h2>
+				<p>{active.blurb}</p>
+			</header>
+			<label class="search">
+				<Icon name="search" size={15} />
+				<input bind:value={query} type="search" placeholder="Buscar" aria-label={`Buscar em ${active.label}`} />
+			</label>
+			<nav class="list" aria-label={active.label}>
+				{#each items as item (item.id)}
+					<a
+						class="item"
+						class:active={itemIsActive(page.url.pathname, item.href)}
+						href={item.href}
+						onclick={() => onNavigate?.()}
+					>
+						<span class="item-icon"><Icon name={item.icon} size={16} /></span>
+						<span class="item-label">{item.label}</span>
+						{#if item.id === 'moderation' && $moderationSummary.total > 0}
+							<span class="count">{$moderationSummary.total > 99 ? '99+' : $moderationSummary.total}</span>
+						{/if}
+					</a>
+				{:else}
+					<p class="empty">Nada encontrado</p>
+				{/each}
+			</nav>
+		{/if}
 	</div>
 </aside>
 
@@ -148,80 +135,203 @@
 		top: 0;
 		flex-shrink: 0;
 		display: flex;
-		flex-direction: column;
 		background: var(--surface);
 		border-right: 1px solid var(--border);
-		padding: 16px 12px 12px;
 	}
 
-	.brand {
+	.rail {
+		width: var(--rail-w);
+		flex-shrink: 0;
 		display: flex;
+		flex-direction: column;
 		align-items: center;
-		gap: 10px;
-		padding: 4px 8px 14px;
-		margin-bottom: 4px;
+		gap: 8px;
+		padding: 12px 0;
+		background: #18181b;
+		color: #d4d4d8;
 	}
 	.mark {
-		width: 28px;
-		height: 28px;
-		border-radius: 7px;
-		background: var(--ink);
+		width: 40px;
+		height: 40px;
+		border-radius: 12px;
+		display: grid;
+		place-items: center;
+		background: #fff;
+		color: #18181b;
+		font-weight: 700;
+		font-size: 15px;
+		letter-spacing: -0.04em;
+		margin-bottom: 6px;
+	}
+	.rail-nav {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		width: 100%;
+		padding: 0 8px;
+	}
+	.rail-nav::-webkit-scrollbar {
+		width: 0;
+	}
+	.rail-btn {
+		position: relative;
+		width: 44px;
+		height: 44px;
+		border: none;
+		border-radius: 14px;
+		background: transparent;
+		color: #a1a1aa;
+		display: grid;
+		place-items: center;
+		flex-shrink: 0;
+	}
+	.rail-btn:hover {
+		background: rgba(255, 255, 255, 0.08);
+		color: #fff;
+	}
+	.rail-btn.active {
+		background: #3f3f46;
+		color: #fff;
+	}
+	.rail-badge {
+		position: absolute;
+		top: 4px;
+		right: 2px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		border-radius: 999px;
+		background: var(--danger);
+		color: #fff;
+		font-size: 9px;
+		font-weight: 700;
+		display: grid;
+		place-items: center;
+		line-height: 1;
+	}
+	.rail-foot {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 8px;
+		padding-top: 8px;
+	}
+	.avatar {
+		width: 36px;
+		height: 36px;
+		border-radius: 999px;
+		background: #3f3f46;
 		color: #fff;
 		display: grid;
 		place-items: center;
 		font-size: 13px;
-		font-weight: 700;
-		letter-spacing: -0.04em;
-	}
-	.brand-copy {
-		display: flex;
-		flex-direction: column;
-		line-height: 1.15;
-	}
-	.brand-copy strong {
-		font-size: 13.5px;
 		font-weight: 650;
-		letter-spacing: -0.03em;
 	}
-	.brand-copy small {
-		font-size: 11px;
-		color: var(--faint);
-		font-weight: 500;
+	.out:hover {
+		color: #fecaca;
+		background: rgba(220, 38, 38, 0.25);
 	}
 
-	.nav {
+	.panel {
+		width: var(--panel-w);
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 1px;
-		margin-bottom: 12px;
+		gap: 10px;
+		padding: 16px 12px 12px;
+		background: var(--sidebar);
 	}
-	.nav-item {
+	.panel-head h2 {
+		font-size: 20px;
+		font-weight: 650;
+		letter-spacing: -0.03em;
+		line-height: 1.2;
+	}
+	.panel-head p {
+		margin-top: 2px;
+		font-size: 12.5px;
+		color: var(--muted);
+	}
+	.search {
 		display: flex;
 		align-items: center;
-		gap: 9px;
-		padding: 8px 10px;
-		border-radius: var(--radius-sm);
-		color: var(--muted);
+		gap: 8px;
+		height: 36px;
+		padding: 0 10px;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		background: var(--surface);
+		color: var(--faint);
+		box-shadow: var(--shadow-xs);
+	}
+	.search:focus-within {
+		border-color: var(--ring);
+		box-shadow: 0 0 0 3px var(--ring-soft);
+	}
+	.search input {
+		border: none;
+		background: transparent;
+		outline: none;
+		width: 100%;
+		height: 100%;
+		padding: 0;
 		font-size: 13px;
+		box-shadow: none;
+	}
+	.list {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.item {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 40px;
+		padding: 6px 8px;
+		border-radius: 10px;
+		color: var(--ink);
+		font-size: 13.5px;
 		font-weight: 500;
-		letter-spacing: -0.01em;
-		transition: background 0.1s, color 0.1s;
 	}
-	.nav-item svg {
-		width: 14px;
-		height: 14px;
-		opacity: 0.75;
-	}
-	.nav-item:hover {
+	.item:hover {
 		background: var(--subtle);
-		color: var(--ink);
 	}
-	.nav-item.active {
+	.item.active {
 		background: var(--subtle);
-		color: var(--ink);
+		box-shadow: inset 0 0 0 1px var(--border);
 		font-weight: 600;
 	}
-	.alert-count {
+	.item-icon {
+		width: 28px;
+		height: 28px;
+		border-radius: 8px;
+		display: grid;
+		place-items: center;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		color: var(--muted);
+		flex-shrink: 0;
+	}
+	.item.active .item-icon {
+		background: var(--ink);
+		border-color: var(--ink);
+		color: #fff;
+	}
+	.item-label {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.count {
 		margin-left: auto;
 		min-width: 20px;
 		height: 20px;
@@ -234,164 +344,24 @@
 		justify-content: center;
 		font-size: 10px;
 		font-weight: 700;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.collections {
-		flex: 1;
-		min-height: 0;
-		display: flex;
-		flex-direction: column;
-	}
-	.section-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 8px 10px 6px;
-		font-size: 10.5px;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.06em;
-		color: var(--faint);
-	}
-	.count {
-		font-variant-numeric: tabular-nums;
-		color: var(--faint);
-		background: var(--subtle);
-		padding: 1px 6px;
-		border-radius: 999px;
-		font-size: 10px;
-	}
-
-	.search {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		margin: 0 4px 6px;
-		padding: 6px 8px;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		background: var(--subtle);
-	}
-	.search:focus-within {
-		border-color: var(--border-strong);
-		background: var(--surface);
-	}
-	.search svg {
-		width: 13px;
-		height: 13px;
-		color: var(--faint);
-		flex-shrink: 0;
-	}
-	.search input {
-		border: none;
-		background: transparent;
-		outline: none;
-		width: 100%;
-		padding: 0;
-		font-size: 12.5px;
-	}
-
-	ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		overflow-y: auto;
-		flex: 1;
-	}
-	.col {
-		display: block;
-		padding: 7px 10px;
-		margin: 0 2px;
-		border-radius: var(--radius-sm);
-		color: var(--muted);
-		font-size: 13px;
-		font-weight: 500;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		transition: background 0.1s, color 0.1s;
-	}
-	.col:hover {
-		background: var(--subtle);
-		color: var(--ink);
-	}
-	.col.active {
-		background: var(--ink);
-		color: #fff;
-		font-weight: 550;
 	}
 	.empty {
-		padding: 12px;
+		padding: 20px 8px;
 		text-align: center;
 		color: var(--faint);
-		font-size: 12px;
+		font-size: 13px;
 	}
 
-	.foot {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding-top: 10px;
-		margin-top: 8px;
-		border-top: 1px solid var(--border);
-	}
-	.user {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-width: 0;
-		flex: 1;
-		padding: 2px 4px;
-	}
-	.avatar {
-		width: 26px;
-		height: 26px;
-		border-radius: 50%;
-		background: var(--subtle);
-		border: 1px solid var(--border);
-		color: var(--ink);
-		display: grid;
-		place-items: center;
-		font-size: 11px;
-		font-weight: 650;
-		flex-shrink: 0;
-	}
-	.meta {
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-		line-height: 1.2;
-	}
-	.name {
-		font-size: 12px;
-		font-weight: 600;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.email {
-		font-size: 10.5px;
-		color: var(--faint);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	.out {
-		border: none;
-		background: transparent;
-		color: var(--faint);
-		padding: 7px;
-		border-radius: var(--radius-xs);
-		display: grid;
-		place-items: center;
-	}
-	.out svg {
-		width: 14px;
-		height: 14px;
-	}
-	.out:hover {
-		color: var(--danger);
-		background: var(--danger-soft);
+	@media (max-width: 960px) {
+		.sidebar {
+			position: fixed;
+			z-index: 40;
+			transform: translateX(-105%);
+			transition: transform 0.18s ease;
+			box-shadow: var(--shadow-md);
+		}
+		.sidebar.open {
+			transform: translateX(0);
+		}
 	}
 </style>

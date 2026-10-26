@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { ProductCard } from './ProductCard';
 import { ProductMosaicList } from './ProductMosaic';
 import { useItems } from '@/hooks/useItems';
+import { listingPlace } from '@/lib/listingMeta';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { ListingSkeleton } from '@/components/layout/ListingSkeleton';
 import {
@@ -49,7 +50,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     return () => {
       alive = false;
     };
-    // loadItems is a stable useCallback([]) — omit from deps to avoid remount loops
+    // loadItems is a stable useCallback([]). Omit from deps to avoid remount loops.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryString]);
 
@@ -116,7 +117,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               name={item.title}
               imageUrl={item.image_url}
               category={item.category}
-              location={item.location}
+              location={listingPlace(item.city, item.location)}
+              createdAt={item.created_at}
               condition={item.condition}
               viewsCount={item.views_count || 0}
               favoritesCount={item.favorites_count || 0}
@@ -140,7 +142,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
               name={item.title}
               imageUrl={item.image_url}
               category={item.category}
-              location={item.location}
+              location={listingPlace(item.city, item.location)}
+              createdAt={item.created_at}
               condition={item.condition}
               compact={compact || isRail}
               viewsCount={item.views_count || 0}

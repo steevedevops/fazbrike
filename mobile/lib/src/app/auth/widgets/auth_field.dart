@@ -37,12 +37,9 @@ class AuthField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: theme.colorScheme.onSurface,
-          ),
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: AppSpacing.sm),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
@@ -51,9 +48,14 @@ class AuthField extends StatelessWidget {
           obscureText: obscureText,
           onChanged: onChanged,
           validator: validator,
-          decoration: InputDecoration(hintText: hint, suffixIcon: suffixIcon),
+          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500),
+          decoration: InputDecoration(
+            hintText: hint,
+            suffixIcon: suffixIcon,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
       ],
     );
   }

@@ -29,6 +29,7 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   bool _register = false;
+  int _registerStep = 0;
   bool _remember = false;
   bool _acceptTerms = false;
   bool _obscure = true;
@@ -50,6 +51,14 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
     _password.dispose();
     _confirm.dispose();
     super.dispose();
+  }
+
+  void _nextRegisterStep() {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _error = '';
+      _registerStep += 1;
+    });
   }
 
   Future<void> _submit() async {
@@ -90,70 +99,91 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
     final theme = Theme.of(context);
     final busy = ref.watch(authFormProvider).isLoading;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxl),
-      children: [
-        const AuthBrandHeader(),
-        const SizedBox(height: AppSpacing.xl),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AuthModeTabs(
-                  isRegister: _register,
-                  onChanged: busy
-                      ? null
-                      : (value) => setState(() {
-                            _register = value;
-                            _error = '';
-                            _formKey.currentState?.reset();
-                          }),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  _register ? 'Junte-se à comunidade Fazbrike.' : 'Acesse sua conta para continuar.',
-                  style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodySmall?.color),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                if (_error.isNotEmpty) ...[
-                  _ErrorBanner(message: _error),
-                  const SizedBox(height: AppSpacing.lg),
-                ],
-                Form(
-                  key: _formKey,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minHeight = constraints.maxHeight - 32;
+        return Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.xl),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: minHeight < 0 ? 0 : minHeight),
+                child: IntrinsicHeight(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _register ? _registerFields() : _loginFields(),
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const AuthBrandHeader(),
+                      const SizedBox(height: AppSpacing.xxl),
+                      Text(
+                        _register ? 'Criar conta' : 'Entrar',
+                        style: theme.textTheme.headlineSmall,
+                      ),
+                      if (_register) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'Passo ${_registerStep + 1} de 3',
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        _register ? _registerHelp : 'Acesse sua conta para continuar.',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          height: 1.4,
+                          color: theme.textTheme.bodySmall?.color,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      if (_error.isNotEmpty) ...[
+                        _ErrorBanner(message: _error),
+                        const SizedBox(height: AppSpacing.xl),
+                      ],
+                      Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: _register ? _registerFields() : _loginFields(),
+                        ),
+                      ),
+                      _accountActions(busy, theme),
+                      if (!_register || _registerStep == 0)
+                        SocialLoginButtons(onError: (message) => setState(() => _error = message)),
+                      const SizedBox(height: AppSpacing.lg),
+                      AuthModeTabs(
+                        isRegister: _register,
+                        onChanged: busy
+                            ? null
+                            : (value) => setState(() {
+                                  _register = value;
+                                  _registerStep = 0;
+                                  _error = '';
+                                  _formKey.currentState?.reset();
+                                }),
+                      ),
+                      const Spacer(),
+                      const SizedBox(height: AppSpacing.lg),
+                      TextButton.icon(
+                        onPressed: () => context.push('/ajuda'),
+                        icon: const Icon(Icons.help_outline, size: 22),
+                        label: const Text('Central de ajuda'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: theme.colorScheme.onSurface,
+                          minimumSize: const Size.fromHeight(48),
+                          textStyle: theme.textTheme.titleMedium,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: busy ? null : _submit,
-                    style: _inkButtonStyle(context),
-                    child: Text(
-                      busy
-                          ? (_register ? 'Criando conta...' : 'Entrando...')
-                          : (_register ? 'Criar conta' : 'Entrar'),
-                    ),
-                  ),
-                ),
-                SocialLoginButtons(onError: (message) => setState(() => _error = message)),
-                const SizedBox(height: AppSpacing.md),
-                Center(
-                  child: TextButton.icon(
-                    onPressed: () => context.push('/ajuda'),
-                    icon: const Icon(Icons.help_outline, size: 18),
-                    label: const Text('Central de ajuda'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -182,57 +212,109 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
           // Ainda não há recuperação de senha automática: o pedido vai para o suporte.
           onForgot: () => context.push('/ajuda/contato?assunto=conta'),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.sm),
       ];
 
-  List<Widget> _registerFields() => [
-        AuthField(
-          label: 'Nome completo',
-          controller: _name,
-          hint: 'Seu nome completo',
-          textInputAction: TextInputAction.next,
-          autofillHints: const [AutofillHints.name],
-          validator: (value) => (value?.trim().length ?? 0) < 2 ? 'Informe seu nome completo.' : null,
+  String get _registerHelp => switch (_registerStep) {
+        0 => 'Junte-se à comunidade Fazbrike.',
+        1 => 'Escolha uma senha para entrar depois.',
+        _ => 'Aceite os termos para abrir a conta.',
+      };
+
+  Widget _accountActions(bool busy, ThemeData theme) {
+    final onLastStep = _register && _registerStep == 2;
+    final label = busy
+        ? (_register ? 'Criando conta...' : 'Entrando...')
+        : onLastStep
+            ? 'Criar conta'
+            : _register
+                ? 'Continuar'
+                : 'Entrar';
+    final onPressed = busy ? null : (_register && _registerStep < 2 ? _nextRegisterStep : _submit);
+    final primary = FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(56),
+        textStyle: theme.textTheme.titleMedium,
+      ),
+      child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+    );
+    if (!_register || _registerStep == 0) return primary;
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: busy
+                ? null
+                : () => setState(() {
+                      _registerStep -= 1;
+                      _error = '';
+                    }),
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(56)),
+            child: const Text('Voltar'),
+          ),
         ),
-        AuthField(
-          label: 'Email',
-          controller: _email,
-          hint: 'seu@email.com',
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.next,
-          autofillHints: const [AutofillHints.email],
-          validator: _validateEmail,
-        ),
-        AuthField(
-          label: 'Senha',
-          controller: _password,
-          hint: 'Mínimo $_minPasswordLength caracteres',
-          obscureText: _obscure,
-          autofillHints: const [AutofillHints.newPassword],
-          suffixIcon: _visibilityToggle(),
-          onChanged: (_) => setState(() {}),
-          validator: (value) => (value?.length ?? 0) < _minPasswordLength
-              ? 'A senha deve ter pelo menos $_minPasswordLength caracteres.'
-              : null,
-        ),
-        PasswordStrengthBar(password: _password.text),
-        AuthField(
-          label: 'Confirmar senha',
-          controller: _confirm,
-          hint: 'Confirme sua senha',
-          obscureText: _obscure,
-          suffixIcon: _visibilityToggle(),
-          validator: (value) => value != _password.text ? 'As senhas não coincidem.' : null,
-        ),
-        _TermsRow(
-          value: _acceptTerms,
-          onChanged: (value) => setState(() {
-            _acceptTerms = value;
-            if (value) _error = '';
-          }),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-      ];
+        const SizedBox(width: AppSpacing.md),
+        Expanded(flex: 2, child: primary),
+      ],
+    );
+  }
+
+  List<Widget> _registerFields() => switch (_registerStep) {
+        0 => [
+            AuthField(
+              label: 'Nome completo',
+              controller: _name,
+              hint: 'Seu nome completo',
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.name],
+              validator: (value) => (value?.trim().length ?? 0) < 2 ? 'Informe seu nome completo.' : null,
+            ),
+            AuthField(
+              label: 'Email',
+              controller: _email,
+              hint: 'seu@email.com',
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.email],
+              validator: _validateEmail,
+            ),
+          ],
+        1 => [
+            AuthField(
+              label: 'Senha',
+              controller: _password,
+              hint: 'Mínimo $_minPasswordLength caracteres',
+              obscureText: _obscure,
+              autofillHints: const [AutofillHints.newPassword],
+              suffixIcon: _visibilityToggle(),
+              onChanged: (_) => setState(() {}),
+              validator: (value) => (value?.length ?? 0) < _minPasswordLength
+                  ? 'A senha deve ter pelo menos $_minPasswordLength caracteres.'
+                  : null,
+            ),
+            PasswordStrengthBar(password: _password.text),
+            AuthField(
+              label: 'Confirmar senha',
+              controller: _confirm,
+              hint: 'Confirme sua senha',
+              obscureText: _obscure,
+              textInputAction: TextInputAction.done,
+              suffixIcon: _visibilityToggle(),
+              validator: (value) => value != _password.text ? 'As senhas não coincidem.' : null,
+            ),
+          ],
+        _ => [
+            _TermsRow(
+              value: _acceptTerms,
+              onChanged: (value) => setState(() {
+                _acceptTerms = value;
+                if (value) _error = '';
+              }),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+      };
 
   String? _validateEmail(String? value) =>
       RegExp(r'^\S+@\S+\.\S+$').hasMatch(value?.trim() ?? '') ? null : 'Informe um email válido.';
@@ -242,18 +324,6 @@ class _AuthPanelState extends ConsumerState<AuthPanel> {
         tooltip: _obscure ? 'Mostrar senha' : 'Ocultar senha',
         icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
       );
-}
-
-/// CTA no tom do site (`btnInkClass`): preto no claro, claro no escuro — nunca
-/// texto sem contraste sobre o fundo do botão.
-ButtonStyle _inkButtonStyle(BuildContext context) {
-  final scheme = Theme.of(context).colorScheme;
-  return FilledButton.styleFrom(
-    backgroundColor: scheme.onSurface,
-    foregroundColor: scheme.surface,
-    disabledBackgroundColor: scheme.onSurface.withValues(alpha: .5),
-    disabledForegroundColor: scheme.surface.withValues(alpha: .9),
-  );
 }
 
 class _ErrorBanner extends StatelessWidget {
@@ -271,7 +341,11 @@ class _ErrorBanner extends StatelessWidget {
         ),
         child: Text(
           message,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.danger),
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: AppColors.danger,
+                height: 1.4,
+              ),
         ),
       );
 }
@@ -286,58 +360,53 @@ class _RememberRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Flexible nos dois lados: em telas estreitas (ou com fonte ampliada) os
-    // rótulos encurtam em vez de estourar a linha.
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final label = theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Flexible(
-          child: InkWell(
-            onTap: () => onChanged(!value),
-            borderRadius: BorderRadius.circular(AppRadius.chip),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(0, 4, AppSpacing.sm, 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Checkbox(
-                      value: value,
-                      onChanged: (next) => onChanged(next ?? false),
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
+        InkWell(
+          onTap: () => onChanged(!value),
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: value,
+                    onChanged: (next) => onChanged(next ?? false),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Flexible(
-                    child: Text(
-                      'Lembrar de mim',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall,
-                    ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    'Lembrar de mim',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: label,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
-        Flexible(
-          child: InkWell(
-            onTap: onForgot,
-            borderRadius: BorderRadius.circular(AppRadius.chip),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                'Esqueceu a senha?',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
-                style: theme.textTheme.bodySmall?.copyWith(decoration: TextDecoration.underline),
-              ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: onForgot,
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.onSurface,
+              minimumSize: const Size(48, 48),
+              padding: EdgeInsets.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerLeft,
+              textStyle: label?.copyWith(decoration: TextDecoration.underline),
             ),
+            child: const Text('Esqueceu a senha?', maxLines: 1, overflow: TextOverflow.ellipsis),
           ),
         ),
       ],
@@ -355,38 +424,46 @@ class _TermsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Row(
+    final label = theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500, height: 1.4);
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 24,
-          height: 24,
-          child: Checkbox(
-            value: value,
-            onChanged: (next) => onChanged(next ?? false),
-            visualDensity: VisualDensity.compact,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Column(
+        InkWell(
+          onTap: () => onChanged(!value),
+          borderRadius: BorderRadius.circular(AppRadius.control),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GestureDetector(
-                onTap: () => onChanged(!value),
-                child: Text(
-                  'Li e aceito os Termos de uso e a Política de privacidade, e declaro ter 18 anos ou mais.',
-                  style: theme.textTheme.bodySmall,
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  value: value,
+                  onChanged: (next) => onChanged(next ?? false),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
-              Wrap(
-                spacing: AppSpacing.md,
-                children: [
-                  _link(context, 'Ler termos de uso', '/legal/termos-de-uso'),
-                  _link(context, 'Ler política de privacidade', '/legal/politica-de-privacidade'),
-                ],
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    'Li e aceito os Termos de uso e a Política de privacidade, e declaro ter 18 anos ou mais.',
+                    style: label,
+                  ),
+                ),
               ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 40),
+          child: Wrap(
+            spacing: AppSpacing.md,
+            children: [
+              _link(context, 'Ler termos de uso', '/legal/termos-de-uso'),
+              _link(context, 'Ler política de privacidade', '/legal/politica-de-privacidade'),
             ],
           ),
         ),
@@ -396,14 +473,17 @@ class _TermsRow extends StatelessWidget {
 
   Widget _link(BuildContext context, String label, String route) => InkWell(
         onTap: () => context.push(route),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  decoration: TextDecoration.underline,
-                  fontWeight: FontWeight.w600,
-                ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    decoration: TextDecoration.underline,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
           ),
         ),
       );

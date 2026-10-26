@@ -231,30 +231,97 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
         ) : null}
       </div>
 
-      <FilterSection title="Tipo de anúncio">
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            aria-pressed={!selectedListingType}
-            onClick={() => setFilter('listing_type', '')}
-            className={filterChipClass(!selectedListingType)}
-          >
-            Todos
+      <FilterSection title="Preço">
+        <form onSubmit={applyPrice}>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+            <div className="min-w-0">
+              <label htmlFor="filtro-preco-min" className="sr-only">
+                Preço mínimo
+              </label>
+              <input
+                id="filtro-preco-min"
+                type="text"
+                inputMode="decimal"
+                value={minPrice}
+                onChange={(event) => setMinPrice(event.target.value)}
+                placeholder="Mín."
+                className={fieldClass}
+              />
+            </div>
+            <span className="type-meta text-muted" aria-hidden>
+              até
+            </span>
+            <div className="min-w-0">
+              <label htmlFor="filtro-preco-max" className="sr-only">
+                Preço máximo
+              </label>
+              <input
+                id="filtro-preco-max"
+                type="text"
+                inputMode="decimal"
+                value={maxPrice}
+                onChange={(event) => setMaxPrice(event.target.value)}
+                placeholder="Máx."
+                className={fieldClass}
+              />
+            </div>
+          </div>
+          <button type="submit" className={cx(btnSecondaryClass, 'mt-2 w-full')}>
+            Aplicar preço
           </button>
-          {LISTING_TYPES.map((t) => {
-            const active = selectedListingType === t.value;
+        </form>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {PRICE_PRESETS.map((preset) => {
+            const selected = priceSelected(preset);
             return (
               <button
-                key={t.value}
+                key={preset.label}
                 type="button"
-                aria-pressed={active}
-                onClick={() => setFilter('listing_type', active ? '' : t.value)}
-                className={filterChipClass(active)}
+                aria-pressed={selected}
+                onClick={() => applyPricePreset(selected ? { min: '', max: '' } : preset)}
+                className={filterChipClass(selected)}
               >
-                {LISTING_TYPE_SHORT[t.value] ?? t.label}
+                {preset.label}
               </button>
             );
           })}
+        </div>
+      </FilterSection>
+
+      <FilterSection title="Localização">
+        <div className="flex flex-col gap-3">
+          <div>
+            <label htmlFor="filtro-estado" className={labelClass}>
+              Estado
+            </label>
+            <select id="filtro-estado" value={stateId} onChange={(event) => applyState(event.target.value)} className={fieldClass}>
+              <option value="">Todos os estados</option>
+              {states.map((s) => (
+                <option key={s.id} value={String(s.id)}>
+                  {s.name} ({s.code})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="filtro-cidade" className={labelClass}>
+              Cidade
+            </label>
+            <select
+              id="filtro-cidade"
+              value={cityId}
+              onChange={(event) => applyCity(event.target.value)}
+              disabled={!stateId}
+              className={cx(fieldClass, 'disabled:cursor-not-allowed disabled:opacity-60')}
+            >
+              <option value="">{stateId ? 'Todas do estado' : 'Escolha o estado primeiro'}</option>
+              {cities.map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </FilterSection>
 
@@ -318,60 +385,6 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
         </div>
       </FilterSection>
 
-      <FilterSection title="Preço">
-        <div className="flex flex-wrap gap-2">
-          {PRICE_PRESETS.map((preset) => {
-            const selected = priceSelected(preset);
-            return (
-              <button
-                key={preset.label}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => applyPricePreset(selected ? { min: '', max: '' } : preset)}
-                className={filterChipClass(selected)}
-              >
-                {preset.label}
-              </button>
-            );
-          })}
-        </div>
-        <form onSubmit={applyPrice} className="mt-4">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="min-w-0">
-              <label htmlFor="filtro-preco-min" className="sr-only">
-                Preço mínimo
-              </label>
-              <input
-                id="filtro-preco-min"
-                type="text"
-                inputMode="decimal"
-                value={minPrice}
-                onChange={(event) => setMinPrice(event.target.value)}
-                placeholder="Mín. R$"
-                className={fieldClass}
-              />
-            </div>
-            <div className="min-w-0">
-              <label htmlFor="filtro-preco-max" className="sr-only">
-                Preço máximo
-              </label>
-              <input
-                id="filtro-preco-max"
-                type="text"
-                inputMode="decimal"
-                value={maxPrice}
-                onChange={(event) => setMaxPrice(event.target.value)}
-                placeholder="Máx. R$"
-                className={fieldClass}
-              />
-            </div>
-          </div>
-          <button type="submit" className={cx(btnSecondaryClass, 'mt-2 w-full')}>
-            Aplicar preço
-          </button>
-        </form>
-      </FilterSection>
-
       <FilterSection title="Condição">
         <div className="flex flex-wrap gap-2">
           {CONDITIONS.map((condition) => {
@@ -391,40 +404,30 @@ export function ListingFilters({ lockedCategory, onApplied }: ListingFiltersProp
         </div>
       </FilterSection>
 
-      <FilterSection title="Localização">
-        <div className="flex flex-col gap-3">
-          <div>
-            <label htmlFor="filtro-estado" className={labelClass}>
-              Estado
-            </label>
-            <select id="filtro-estado" value={stateId} onChange={(event) => applyState(event.target.value)} className={fieldClass}>
-              <option value="">Todos os estados</option>
-              {states.map((s) => (
-                <option key={s.id} value={String(s.id)}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="filtro-cidade" className={labelClass}>
-              Cidade
-            </label>
-            <select
-              id="filtro-cidade"
-              value={cityId}
-              onChange={(event) => applyCity(event.target.value)}
-              disabled={!stateId}
-              className={cx(fieldClass, 'disabled:cursor-not-allowed disabled:opacity-60')}
-            >
-              <option value="">{stateId ? 'Todas do estado' : 'Escolha o estado primeiro'}</option>
-              {cities.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      <FilterSection title="Tipo de anúncio">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            aria-pressed={!selectedListingType}
+            onClick={() => setFilter('listing_type', '')}
+            className={filterChipClass(!selectedListingType)}
+          >
+            Todos
+          </button>
+          {LISTING_TYPES.map((t) => {
+            const active = selectedListingType === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setFilter('listing_type', active ? '' : t.value)}
+                className={filterChipClass(active)}
+              >
+                {LISTING_TYPE_SHORT[t.value] ?? t.label}
+              </button>
+            );
+          })}
         </div>
       </FilterSection>
     </div>

@@ -1,47 +1,52 @@
 :root {
-	/* Severe minimal — ferramenta, não marketing */
-	--ink: #141210;
-	--ink-soft: #2a2623;
-	--muted: #6f6a64;
-	--faint: #9c958c;
-	--canvas: #f4f2ee;
+	/* shadcn / zinc — painel, não marketing */
+	--ink: #09090b;
+	--ink-soft: #27272a;
+	--muted: #71717a;
+	--faint: #a1a1aa;
+	--canvas: #f4f4f5;
 	--surface: #ffffff;
-	--subtle: #eeece7;
-	--border: #e4dfd6;
-	--border-strong: #cdc6ba;
+	--sidebar: #fafafa;
+	--subtle: #f4f4f5;
+	--border: #e4e4e7;
+	--border-strong: #d4d4d8;
+	--input: #e4e4e7;
+	--ring: #18181b;
+	--ring-soft: rgba(24, 24, 27, 0.12);
 
-	--accent: #141210;
-	--accent-hover: #2a2623;
-	--accent-soft: rgba(20, 18, 16, 0.06);
-	--brand: #c45c26;
-	--brand-soft: rgba(196, 92, 38, 0.12);
+	--accent: #18181b;
+	--accent-hover: #27272a;
+	--accent-soft: rgba(24, 24, 27, 0.06);
+	--brand: #18181b;
+	--brand-soft: rgba(24, 24, 27, 0.08);
 
-	--danger: #b42318;
-	--danger-hover: #912018;
-	--danger-soft: rgba(180, 35, 24, 0.08);
+	--danger: #dc2626;
+	--danger-hover: #b91c1c;
+	--danger-soft: rgba(220, 38, 38, 0.08);
 
-	--success: #3f7d4e;
-	--success-soft: rgba(63, 125, 78, 0.1);
+	--success: #15803d;
+	--success-soft: rgba(21, 128, 61, 0.1);
 
-	--warn: #92400e;
-	--warn-soft: #fff7ed;
-	--warn-border: #fcd34d;
+	--warn: #a16207;
+	--warn-soft: #fefce8;
+	--warn-border: #fde047;
 
-	--radius: 8px;
-	--radius-sm: 6px;
-	--radius-xs: 4px;
+	--radius: 12px;
+	--radius-sm: 8px;
+	--radius-xs: 6px;
 
-	--shadow-xs: 0 1px 2px rgba(20, 18, 16, 0.04);
-	--shadow-sm: 0 2px 8px rgba(20, 18, 16, 0.05);
-	--shadow-md: 0 12px 40px rgba(20, 18, 16, 0.1);
+	--shadow-xs: 0 1px 2px rgba(9, 9, 11, 0.05);
+	--shadow-sm: 0 1px 3px rgba(9, 9, 11, 0.08), 0 1px 2px rgba(9, 9, 11, 0.04);
+	--shadow-md: 0 12px 32px rgba(9, 9, 11, 0.12);
 
-	--sidebar-w: 240px;
-	--font: 'Inter Variable', Inter, system-ui, sans-serif;
+	--rail-w: 68px;
+	--panel-w: 252px;
+	--sidebar-w: calc(var(--rail-w) + var(--panel-w));
+	--font: 'Inter Variable', Inter, ui-sans-serif, system-ui, sans-serif;
 
-	/* aliases */
-	--sidebar-bg: var(--ink);
-	--sidebar-bg-hover: var(--ink-soft);
-	--sidebar-active: var(--accent-soft);
+	--sidebar-bg: var(--sidebar);
+	--sidebar-bg-hover: var(--subtle);
+	--sidebar-active: var(--subtle);
 	--sidebar-text: var(--muted);
 	--sidebar-text-active: var(--ink);
 	--accent-strong: var(--accent);
@@ -66,13 +71,12 @@ body {
 
 body {
 	font-family: var(--font);
-	font-size: 13.5px;
-	line-height: 1.45;
+	font-size: 14px;
+	line-height: 1.5;
 	color: var(--ink);
 	background: var(--canvas);
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
-	font-feature-settings: 'ss01' on, 'cv11' on;
 }
 
 a {
@@ -80,17 +84,15 @@ a {
 	text-decoration: none;
 }
 
-button {
-	font-family: inherit;
-	cursor: pointer;
-}
-
+button,
 input,
 select,
 textarea {
 	font-family: inherit;
-	font-size: 13.5px;
-	color: var(--ink);
+}
+
+button {
+	cursor: pointer;
 }
 
 h1,
@@ -101,21 +103,97 @@ p {
 	margin: 0;
 }
 
+/* Campos no mesmo padrão do shadcn Input / Select.
+   :where() deixa a especificidade zerada para os componentes ajustarem padding. */
+:where(
+	input:not([type='checkbox']):not([type='radio']):not([type='search']):not([type='file']):not([type='button']):not([type='submit']):not([type='hidden']),
+	select,
+	textarea
+) {
+	width: 100%;
+	height: 36px;
+	padding: 0 12px;
+	border: 1px solid var(--input);
+	border-radius: var(--radius-sm);
+	background-color: var(--surface);
+	color: var(--ink);
+	font-size: 14px;
+	line-height: 1.4;
+	box-shadow: var(--shadow-xs);
+	outline: none;
+	transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+:where(textarea) {
+	height: auto;
+	min-height: 96px;
+	padding: 8px 12px;
+	resize: vertical;
+}
+
+:where(select) {
+	appearance: none;
+	line-height: 34px;
+	padding-right: 36px;
+	cursor: pointer;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 10px center;
+	background-size: 16px;
+}
+
+:where(
+	input:not([type='checkbox']):not([type='radio']):not([type='search']):not([type='file']):focus,
+	select:focus,
+	textarea:focus
+) {
+	border-color: var(--ring);
+	box-shadow: 0 0 0 3px var(--ring-soft);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+	background-color: var(--subtle);
+	color: var(--muted);
+	cursor: not-allowed;
+}
+
+input[type='file'] {
+	font-size: 13px;
+	color: var(--muted);
+}
+
+.pagination select {
+	width: auto;
+	min-width: 7.25rem;
+	height: 36px;
+	font-size: 13px;
+	line-height: 34px;
+}
+
 ::-webkit-scrollbar {
-	width: 6px;
-	height: 6px;
+	width: 8px;
+	height: 8px;
 }
 ::-webkit-scrollbar-track {
 	background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-	background: #d4cec4;
-	border-radius: 3px;
+	background: #d4d4d8;
+	border-radius: 999px;
 }
 
-:focus-visible {
-	outline: 2px solid var(--ink);
+a:focus-visible,
+button:focus-visible {
+	outline: 2px solid var(--ring);
 	outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+	outline: none;
 }
 
 .btn {
@@ -123,14 +201,16 @@ p {
 	align-items: center;
 	justify-content: center;
 	gap: 6px;
-	padding: 7px 12px;
+	height: 36px;
+	padding: 0 14px;
 	border-radius: var(--radius-sm);
-	font-size: 13px;
+	font-size: 13.5px;
 	font-weight: 550;
 	border: 1px solid transparent;
 	transition: background 0.12s, border-color 0.12s, color 0.12s, opacity 0.12s;
 	line-height: 1.2;
 	letter-spacing: -0.01em;
+	box-shadow: var(--shadow-xs);
 }
 .btn:disabled {
 	opacity: 0.45;
@@ -145,7 +225,7 @@ p {
 }
 .btn.ghost {
 	background: var(--surface);
-	border-color: var(--border-strong);
+	border-color: var(--border);
 	color: var(--ink);
 }
 .btn.ghost:hover:not(:disabled) {
@@ -160,15 +240,16 @@ p {
 }
 
 .page-title {
-	font-size: 18px;
-	font-weight: 600;
-	letter-spacing: -0.03em;
+	font-size: 24px;
+	font-weight: 650;
+	letter-spacing: -0.035em;
 	color: var(--ink);
+	line-height: 1.2;
 }
 .page-sub {
 	color: var(--muted);
-	font-size: 13px;
-	margin-top: 2px;
+	font-size: 13.5px;
+	margin-top: 4px;
 }
 
 .spinner {

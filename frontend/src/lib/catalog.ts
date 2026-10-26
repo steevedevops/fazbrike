@@ -256,14 +256,9 @@ export function categoryCover(slug?: string | null): string {
   return CATEGORY_COVERS.outros;
 }
 
-/** Resolve listing image: blank/missing → category cover (old behavior). */
-export function listingImageSrc(
-  imageUrl?: string | null,
-  category?: string | null
-): string {
-  const raw = (imageUrl || '').trim();
-  if (!raw) return categoryCover(category);
-  return raw;
+/** URL da foto do anúncio. Vazio quando não há foto — não usa capa de categoria. */
+export function listingImageSrc(imageUrl?: string | null): string {
+  return (imageUrl || '').trim();
 }
 
 export type VehicleAttrs = {

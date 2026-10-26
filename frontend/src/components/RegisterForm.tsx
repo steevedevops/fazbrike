@@ -6,8 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import type { ApiError } from '@/lib/services/api';
 import { PasswordInput } from '@/components/PasswordInput';
+import { SocialLoginButtons } from '@/components/SocialLoginButtons';
 import {
   btnInkClass,
+  btnSecondaryClass,
   cx,
   errorBannerClass,
   fieldClass,
@@ -51,6 +53,7 @@ export const RegisterForm: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [step, setStep] = useState(0);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,25 +70,42 @@ export const RegisterForm: React.FC = () => {
     }
   };
 
+  const validateStep = (current: number): FieldErrors => {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const errors: FieldErrors = {};
+    if (current === 0) {
+      if (trimmedName.length < 2) errors.name = 'Informe seu nome completo.';
+      if (!EMAIL_RE.test(trimmedEmail)) errors.email = 'Informe um email válido.';
+    }
+    if (current === 1) {
+      if (password.length < 6) errors.password = 'A senha deve ter pelo menos 6 caracteres.';
+      if (confirmPassword.length === 0) errors.confirm = 'Confirme sua senha.';
+      else if (password !== confirmPassword) errors.confirm = 'As senhas não coincidem.';
+    }
+    if (current === 2 && !acceptTerms) {
+      errors.terms = 'Aceite os Termos de uso e a Política de privacidade para continuar.';
+    }
+    return errors;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const trimmedName = name.trim();
-    const trimmedEmail = email.trim();
-
-    const errors: FieldErrors = {};
-    if (trimmedName.length < 2) errors.name = 'Informe seu nome completo.';
-    if (!EMAIL_RE.test(trimmedEmail)) errors.email = 'Informe um email válido.';
-    if (password.length < 6) errors.password = 'A senha deve ter pelo menos 6 caracteres.';
-    if (confirmPassword.length === 0) errors.confirm = 'Confirme sua senha.';
-    else if (password !== confirmPassword) errors.confirm = 'As senhas não coincidem.';
-    if (!acceptTerms) errors.terms = 'Aceite os Termos de uso e a Política de privacidade para continuar.';
-
+    const errors = validateStep(step);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
     }
+    if (step < 2) {
+      setFieldErrors({});
+      setStep(step + 1);
+      return;
+    }
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
 
     setLoading(true);
 
@@ -101,7 +121,14 @@ export const RegisterForm: React.FC = () => {
 
   return (
     <div id="panel-register" role="tabpanel" aria-labelledby="tab-register" className="animate-fade-in">
-      <p className="type-body text-muted mb-6">Junte-se à comunidade Fazbrike.</p>
+      <p className="type-body font-semibold text-ink mb-1">Passo {step + 1} de 3</p>
+      <p className="type-body text-muted mb-6">
+        {step === 0
+          ? 'Junte-se à comunidade Fazbrike.'
+          : step === 1
+            ? 'Escolha uma senha para entrar depois.'
+            : 'Aceite os termos para abrir a conta.'}
+      </p>
 
       {error ? (
         <div className={errorBannerClass} role="alert">
@@ -110,6 +137,8 @@ export const RegisterForm: React.FC = () => {
       ) : null}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        {step === 0 ? (
+        <>
         <div>
           <label htmlFor="name" className={labelClass}>
             Nome completo
@@ -161,7 +190,11 @@ export const RegisterForm: React.FC = () => {
             </p>
           ) : null}
         </div>
+        </>
+        ) : null}
 
+        {step === 1 ? (
+        <>
         <div>
           <label htmlFor="password" className={labelClass}>
             Senha
@@ -224,7 +257,10 @@ export const RegisterForm: React.FC = () => {
             </p>
           ) : null}
         </div>
+        </>
+        ) : null}
 
+        {step === 2 ? (
         <div>
           <label htmlFor="accept-terms" className="flex items-start gap-3 type-meta text-muted">
             <input
@@ -257,11 +293,27 @@ export const RegisterForm: React.FC = () => {
             </p>
           ) : null}
         </div>
+        ) : null}
 
-        <button type="submit" disabled={loading} className={`${btnInkClass} w-full`}>
-          {loading ? 'Criando conta...' : 'Criar conta'}
-        </button>
+        <div className="flex gap-3">
+          {step > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setError('');
+                setStep(step - 1);
+              }}
+              className={cx(btnSecondaryClass, 'min-w-28')}
+            >
+              Voltar
+            </button>
+          ) : null}
+          <button type="submit" disabled={loading} className={cx(btnInkClass, 'flex-1')}>
+            {step < 2 ? 'Continuar' : loading ? 'Criando conta...' : 'Criar conta'}
+          </button>
+        </div>
       </form>
+      {step === 0 ? <SocialLoginButtons /> : null}
     </div>
   );
 };

@@ -81,13 +81,13 @@
 
 <style>
 	.page {
-		max-width: 720px;
+		max-width: 880px;
 		width: 100%;
 		margin: 0 auto;
 	}
 	.nope {
 		padding: 24px 0;
-		max-width: 720px;
+		max-width: 880px;
 		margin: 0 auto;
 	}
 	.back {

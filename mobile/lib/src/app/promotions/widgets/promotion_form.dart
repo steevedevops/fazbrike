@@ -258,7 +258,6 @@ class _ImageField extends StatelessWidget {
                   children: [
                     RemoteImage(
                       url: imageUrl,
-                      fallbackAsset: 'lib/assets/images/highlights/highlight-deal.jpg',
                     ),
                     Positioned(
                       right: AppSpacing.sm,

@@ -28,12 +28,12 @@
 	</div>
 	<div class="controls">
 		<select
-			value={String(result.perPage)}
+			value={result.perPage}
 			onchange={(e) => onPerPage(Number(e.currentTarget.value))}
 			aria-label="Registros por página"
 		>
 			{#each [10, 20, 30, 50, 100] as n}
-				<option value={n} selected={result.perPage === n}>{n} / pág.</option>
+				<option value={n}>{n} / pág.</option>
 			{/each}
 		</select>
 
@@ -78,18 +78,7 @@
 		gap: 4px;
 	}
 	select {
-		padding: 6px 10px;
-		min-width: 100px;
-		cursor: pointer;
-		border: 1px solid var(--border);
-		border-radius: var(--radius-sm);
-		background: var(--surface);
-		font-size: 12.5px;
-		outline: none;
 		margin-right: 6px;
-	}
-	select:focus {
-		border-color: var(--accent);
 	}
 	.page {
 		min-width: 32px;

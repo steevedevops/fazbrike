@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fazbrike/src/app/items/models/item_model.dart';
-import 'package:fazbrike/src/shared/utils/app_utils.dart';
 import 'package:fazbrike/src/shared/widgets/remote_image.dart';
 
 class ItemGallery extends StatefulWidget {
@@ -24,7 +23,7 @@ class _ItemGalleryState extends State<ItemGallery> {
         PageView.builder(
           itemCount: urls.length,
           onPageChanged: (index) => setState(() => current = index),
-          itemBuilder: (_, index) => RemoteImage(url: urls[index], fallbackAsset: categoryAsset(item.category)),
+          itemBuilder: (_, index) => RemoteImage(url: urls[index]),
         ),
         // Escurece o topo para os botões da app bar ficarem legíveis em fotos claras.
         const IgnorePointer(

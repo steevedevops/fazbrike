@@ -56,7 +56,6 @@ class MyPromotionCard extends ConsumerWidget {
               children: [
                 RemoteImage(
                   url: promotion.imageUrl,
-                  fallbackAsset: 'lib/assets/images/highlights/highlight-deal.jpg',
                 ),
                 Positioned(
                   left: AppSpacing.sm,

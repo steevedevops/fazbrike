@@ -111,6 +111,7 @@
 		{#if !required && (value !== null && value !== undefined && value !== '')}
 			<button type="button" class="rs-clear" onclick={clear} title="Desvincular" aria-label="Desvincular">×</button>
 		{/if}
+		<span class="rs-chevron" aria-hidden="true"></span>
 	</div>
 	{#if open}
 		<div class="rs-dropdown">
@@ -143,11 +144,25 @@
 	}
 	.rs-input-row input {
 		width: 100%;
-		padding-right: 28px;
+		padding-right: 52px;
+		cursor: pointer;
+	}
+	.rs-input-row input:focus {
+		cursor: text;
+	}
+	.rs-chevron {
+		position: absolute;
+		right: 12px;
+		top: 50%;
+		width: 16px;
+		height: 16px;
+		transform: translateY(-50%);
+		pointer-events: none;
+		background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 16px no-repeat;
 	}
 	.rs-clear {
 		position: absolute;
-		right: 6px;
+		right: 30px;
 		top: 50%;
 		transform: translateY(-50%);
 		border: none;

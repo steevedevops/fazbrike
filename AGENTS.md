@@ -67,6 +67,8 @@ Detalhes (causa/sintoma/correção) em [`.cursor/skills/memoria-de-erros/SKILL.m
     Docker `golang:1.25`); nunca `@latest` às cegas.
 13. **next build x next dev** — não rode `next build` com o `next dev` (porta 3003) no ar:
     os dois usam `frontend/.next` e o dev passa a dar 500. Se rodar, reinicie o dev limpando `.next`.
+14. **Travessão:** NUNCA escreva o caractere travessão (U+2014) nem a meia-risca (U+2013)
+    em chat, código, comentário, interface ou commit. Use ponto, vírgula, dois-pontos ou parênteses.
 
 ## Admin — todo módulo/model novo DEVE aparecer no admin
 

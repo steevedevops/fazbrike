@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fazbrike/src/app/catalog/controllers/catalog_controller.dart';
 import 'package:fazbrike/src/app/profile/controllers/profile_controller.dart';
 import 'package:fazbrike/src/app/profile/models/profile_models.dart';
+import 'package:fazbrike/src/shared/widgets/app_select_field.dart';
 import 'package:fazbrike/src/theme/app_spacing.dart';
 
 class ProfileEditSheet extends ConsumerStatefulWidget {
@@ -46,6 +47,8 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   Widget build(BuildContext context) {
     final states = ref.watch(statesProvider).value?.results ?? [];
     final cities = ref.watch(citiesProvider).value?.results ?? [];
+    final stateValue = states.any((state) => state.id == stateId) ? stateId : null;
+    final cityValue = cities.any((city) => city.id == cityId) ? cityId : null;
     final busy = ref.watch(profileFormProvider).isLoading;
     return Scaffold(
       appBar: AppBar(title: const Text('Editar perfil')),
@@ -59,9 +62,33 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
         const SizedBox(height: 12),
         TextField(controller: website, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'Site')),
         const SizedBox(height: 12),
-        DropdownButtonFormField<int>(initialValue: stateId, isExpanded: true, decoration: const InputDecoration(labelText: 'Estado'), items: [for (final state in states) DropdownMenuItem(value: state.id, child: Text('${state.name} (${state.code})'))], onChanged: (value) { setState(() { stateId = value; cityId = null; }); if (value != null) ref.read(citiesProvider.notifier).list(value); }),
+        AppSelectField<int>(
+          key: ValueKey('state-$stateValue'),
+          label: 'Estado',
+          value: stateValue,
+          items: [
+            for (final state in states)
+              DropdownMenuItem(value: state.id, child: Text('${state.name} (${state.code})', maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ],
+          onChanged: (value) {
+            setState(() {
+              stateId = value;
+              cityId = null;
+            });
+            if (value != null) ref.read(citiesProvider.notifier).list(value);
+          },
+        ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<int>(initialValue: cities.any((city) => city.id == cityId) ? cityId : null, isExpanded: true, decoration: const InputDecoration(labelText: 'Cidade'), items: [for (final city in cities) DropdownMenuItem(value: city.id, child: Text(city.name))], onChanged: (value) => setState(() => cityId = value)),
+        AppSelectField<int>(
+          key: ValueKey('city-$stateId-$cityValue'),
+          label: 'Cidade',
+          value: cityValue,
+          items: [
+            for (final city in cities)
+              DropdownMenuItem(value: city.id, child: Text(city.name, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ],
+          onChanged: stateId == null ? null : (value) => setState(() => cityId = value),
+        ),
         SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Perfil público'), value: isPublic, onChanged: (value) => setState(() => isPublic = value)),
         const SizedBox(height: 16),
         FilledButton(onPressed: busy ? null : _save, child: Text(busy ? 'Salvando...' : 'Salvar')),

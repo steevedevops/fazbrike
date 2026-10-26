@@ -27,7 +27,7 @@ class ConversationList extends ConsumerWidget {
                       leading: CircleAvatar(
                         child: conversation.otherUserAvatarUrl.isEmpty
                             ? Text(conversation.otherUserName.characters.first.toUpperCase())
-                            : ClipOval(child: RemoteImage(url: conversation.otherUserAvatarUrl, fallbackAsset: 'lib/assets/images/categories/outros.jpg')),
+                            : ClipOval(child: RemoteImage(url: conversation.otherUserAvatarUrl)),
                       ),
                       title: Text(conversation.otherUserName, style: TextStyle(fontWeight: conversation.unreadCount > 0 ? FontWeight.bold : null)),
                       subtitle: Text('${conversation.itemTitle}\n${conversation.lastMessage}', maxLines: 2, overflow: TextOverflow.ellipsis),

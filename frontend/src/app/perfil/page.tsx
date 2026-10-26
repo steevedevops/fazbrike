@@ -9,6 +9,7 @@ import { SectionHeader } from '@/components/layout/SectionHeader';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { ListingSkeleton } from '@/components/layout/ListingSkeleton';
 import { ProductCard } from '@/components/ProductCard';
+import { listingPlace } from '@/lib/listingMeta';
 import { MarkSoldModal, MarkSoldResult } from '@/components/MarkSoldModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useItems } from '@/hooks/useItems';
@@ -468,7 +469,8 @@ export default function PerfilPage() {
                   name={item.title}
                   imageUrl={item.image_url}
                   category={item.category}
-                  location={item.location}
+                  location={listingPlace(item.city, item.location)}
+                  createdAt={item.created_at}
                   condition={item.condition}
                   viewsCount={item.views_count || 0}
                   favoritesCount={item.favorites_count || 0}

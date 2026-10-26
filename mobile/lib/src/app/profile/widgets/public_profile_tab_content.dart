@@ -52,7 +52,7 @@ class PublicProfileTabContent extends ConsumerWidget {
                 itemBuilder: (_, index) {
                   final person = page.results[index];
                   return ListTile(
-                    leading: CircleAvatar(child: person.avatarUrl.isEmpty ? Text(person.name.characters.first.toUpperCase()) : ClipOval(child: RemoteImage(url: person.avatarUrl, fallbackAsset: 'lib/assets/images/categories/outros.jpg'))),
+                    leading: CircleAvatar(child: person.avatarUrl.isEmpty ? Text(person.name.characters.first.toUpperCase()) : ClipOval(child: RemoteImage(url: person.avatarUrl))),
                     title: Text(person.name),
                     onTap: () => context.push('/usuario/${person.id}'),
                   );

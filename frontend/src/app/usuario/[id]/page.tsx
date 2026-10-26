@@ -7,6 +7,7 @@ import { PageShell, PageSpinner } from '@/components/PageShell';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { ListingSkeleton } from '@/components/layout/ListingSkeleton';
 import { ProductCard } from '@/components/ProductCard';
+import { listingPlace } from '@/lib/listingMeta';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Item,
@@ -659,7 +660,8 @@ export default function UsuarioPublicoPage() {
               name={item.title}
               imageUrl={item.image_url}
               category={item.category}
-              location={item.location}
+              location={listingPlace(item.city, item.location)}
+              createdAt={item.created_at}
               condition={item.condition}
               viewsCount={item.views_count || 0}
               favoritesCount={item.favorites_count || 0}

@@ -4,30 +4,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { NotificationBell } from '@/components/NotificationBell';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { apiService } from '@/lib/services/api';
 import { playMessageSound } from '@/lib/messageSound';
-import { CATEGORIES } from '@/lib/catalog';
-import {
-  containerClass,
-  cx,
-} from '@/lib/ui-classes';
-
-const headerCats = CATEGORIES.filter((c) =>
-  ['roupas', 'eletronicos', 'veiculos', 'imoveis', 'moveis', 'esportes', 'outros'].includes(c.slug)
-).map((c) => ({
-  href: `/geral?category=${c.slug}`,
-  slug: c.slug,
-  label: c.name.toLowerCase(),
-}));
+import { containerClass } from '@/lib/ui-classes';
 
 export const Header: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const activeCategory = searchParams.get('category') || '';
   const [query, setQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [unreadTotal, setUnreadTotal] = useState(0);
@@ -78,8 +63,16 @@ export const Header: React.FC = () => {
 
   const closeMenus = () => setIsMenuOpen(false);
 
-  const isCatActive = (slug: string) =>
-    pathname.startsWith('/geral') && activeCategory === slug;
+  const mobileLinks = [
+    { href: '/geral', label: 'Anúncios' },
+    { href: '/ofertas', label: 'Ofertas de parceiros' },
+    { href: '/messages', label: 'Mensagens' },
+    ...(isAuthenticated ? [{ href: '/notificacoes', label: 'Notificações' }] : []),
+    {
+      href: isAuthenticated ? '/perfil' : '/login',
+      label: isAuthenticated ? 'Meu perfil' : 'Entrar',
+    },
+  ];
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-surface border-b border-[color:var(--color-border)]">
@@ -89,7 +82,7 @@ export const Header: React.FC = () => {
 
           <form
             onSubmit={handleSearch}
-            className="flex-1 min-w-0 max-w-xl"
+            className="min-w-0 flex-1 max-w-2xl"
             role="search"
           >
             <label htmlFor="campo-busca" className="sr-only">
@@ -102,7 +95,7 @@ export const Header: React.FC = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder='busque "iphone", "sofá", "bike"…'
-                className="w-full min-h-11 pl-5 pr-12 py-2.5 bg-subtle border-0 rounded-pill type-body text-ink placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                className="w-full min-h-11 pl-5 pr-12 py-2.5 bg-subtle border-0 rounded-pill type-body text-ink placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               />
               <button
                 type="submit"
@@ -116,50 +109,12 @@ export const Header: React.FC = () => {
             </div>
           </form>
 
-          <nav
-            className="hidden lg:flex items-center gap-4 xl:gap-5 shrink-0 ml-auto"
-            aria-label="Categorias"
-          >
-            {headerCats.map((link) => (
-              <Link
-                key={link.slug}
-                href={link.href}
-                className={cx(
-                  'type-meta lowercase tracking-tight pb-0.5 border-b-2 transition-colors',
-                  isCatActive(link.slug)
-                    ? 'text-ink border-brand-500 font-medium'
-                    : 'text-muted border-transparent hover:text-ink'
-                )}
-                aria-current={isCatActive(link.slug) ? 'page' : undefined}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <Link
-              href="/ofertas"
-              className={cx(
-                'type-meta lowercase tracking-tight pb-0.5 border-b-2 transition-colors',
-                pathname.startsWith('/ofertas')
-                  ? 'text-ink border-brand-500 font-medium'
-                  : 'text-muted border-transparent hover:text-ink'
-              )}
-              aria-current={pathname.startsWith('/ofertas') ? 'page' : undefined}
-            >
-              ofertas
-            </Link>
-          </nav>
-
-          <div
-            className="hidden sm:block w-px h-6 bg-[color:var(--color-border)] shrink-0"
-            aria-hidden
-          />
-
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             {isAuthenticated && <NotificationBell />}
 
             <Link
               href="/messages"
-              className="relative hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-pill text-brand-500 hover:bg-subtle"
+              className="relative hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-pill text-ink hover:bg-subtle"
               aria-label={unreadTotal > 0 ? `Mensagens (${unreadTotal} não lidas)` : 'Mensagens'}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -190,15 +145,15 @@ export const Header: React.FC = () => {
 
             <Link
               href="/vender"
-              className="hidden sm:inline-flex items-center justify-center min-h-10 px-5 type-meta font-semibold lowercase rounded-pill bg-brand-500 text-white hover:bg-brand-600"
+              className="inline-flex items-center justify-center min-h-10 px-3 sm:px-5 type-meta font-semibold rounded-pill bg-brand-500 text-white hover:bg-brand-600"
             >
-              quero vender
+              Vender
             </Link>
 
             <button
               type="button"
               onClick={() => setIsMenuOpen((open) => !open)}
-              className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-pill text-muted hover:bg-subtle hover:text-ink"
+              className="sm:hidden inline-flex items-center justify-center h-10 w-10 rounded-pill text-muted hover:bg-subtle hover:text-ink"
               aria-label="Menu"
               aria-expanded={isMenuOpen}
               aria-controls="menu-mobile"
@@ -218,28 +173,15 @@ export const Header: React.FC = () => {
       {isMenuOpen && (
         <div
           id="menu-mobile"
-          className="lg:hidden border-t border-[color:var(--color-border)] bg-surface"
+          className="sm:hidden border-t border-[color:var(--color-border)] bg-surface"
         >
           <nav className="px-4 py-3 flex flex-col" aria-label="Menu mobile">
-            {[
-              ...headerCats,
-              { href: '/ofertas', label: 'ofertas de parceiros', slug: 'offers' },
-              { href: '/vender', label: 'quero vender', slug: 'vender' },
-              { href: '/messages', label: 'mensagens', slug: 'messages' },
-              ...(isAuthenticated
-                ? [{ href: '/notificacoes', label: 'notificações', slug: 'notifications' }]
-                : []),
-              {
-                href: isAuthenticated ? '/perfil' : '/login',
-                label: isAuthenticated ? 'meu perfil' : 'entrar',
-                slug: 'account',
-              },
-            ].map((link) => (
+            {mobileLinks.map((link) => (
               <Link
-                key={`${link.href}-${link.label}`}
+                key={link.href}
                 href={link.href}
                 onClick={closeMenus}
-                className="type-body text-ink lowercase py-3 border-b border-[color:var(--color-border)] last:border-b-0"
+                className="type-body text-ink py-3 border-b border-[color:var(--color-border)] last:border-b-0"
               >
                 {link.label}
               </Link>

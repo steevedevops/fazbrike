@@ -107,8 +107,14 @@ export default function LoginPage() {
               ))}
             </div>
 
-            {mode === 'login' ? <LoginForm /> : <RegisterForm />}
-            <SocialLoginButtons />
+            {mode === 'login' ? (
+              <>
+                <LoginForm />
+                <SocialLoginButtons />
+              </>
+            ) : (
+              <RegisterForm />
+            )}
           </div>
         </div>
       </main>

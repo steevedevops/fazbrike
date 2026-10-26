@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:fazbrike/src/app/auth/controllers/auth_controller.dart';
 import 'package:fazbrike/src/app/help/controllers/help_controller.dart';
 import 'package:fazbrike/src/app/help/models/help_models.dart';
+import 'package:fazbrike/src/shared/widgets/app_select_field.dart';
 import 'package:fazbrike/src/theme/app_spacing.dart';
 
 /// Formulário "Fale com a gente". Visitante informa nome e e-mail; logado,
@@ -120,10 +121,9 @@ class _SupportRequestFormState extends ConsumerState<SupportRequestForm> {
           ),
           const SizedBox(height: AppSpacing.md),
         ],
-        DropdownButtonFormField<String>(
-          initialValue: _topic,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: 'Assunto'),
+        AppSelectField<String>(
+          label: 'Assunto',
+          value: _topic,
           items: [
             for (final option in supportTopics)
               DropdownMenuItem(

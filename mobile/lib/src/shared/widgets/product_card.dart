@@ -50,7 +50,7 @@ class ProductCard extends ConsumerWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                RemoteImage(url: item.imageUrl, fallbackAsset: categoryAsset(item.category)),
+                RemoteImage(url: item.imageUrl),
                 Positioned(top: 6, right: 6, child: _favorite(context, ref)),
               ],
             ),
@@ -79,7 +79,7 @@ class ProductCard extends ConsumerWidget {
           children: [
             SizedBox(
               width: 132,
-              child: RemoteImage(url: item.imageUrl, fallbackAsset: categoryAsset(item.category)),
+              child: RemoteImage(url: item.imageUrl),
             ),
             Expanded(
               child: Padding(

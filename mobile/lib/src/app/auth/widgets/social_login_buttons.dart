@@ -36,21 +36,24 @@ class _SocialLoginButtonsState extends ConsumerState<SocialLoginButtons> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final disabled = _busy != null;
+    final buttonStyle = OutlinedButton.styleFrom(
+      minimumSize: const Size.fromHeight(56),
+      textStyle: theme.textTheme.titleMedium,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
         Row(children: [
           const Expanded(child: Divider()),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Text('ou', style: theme.textTheme.bodySmall),
+            child: Text('ou', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w500)),
           ),
           const Expanded(child: Divider()),
         ]),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
         OutlinedButton.icon(
           onPressed: disabled ? null : () => _login(SocialProvider.google),
           icon: const _GoogleMark(),
@@ -59,11 +62,10 @@ class _SocialLoginButtonsState extends ConsumerState<SocialLoginButtons> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+          style: buttonStyle,
         ),
-        const SizedBox(height: AppSpacing.sm),
-        // Botão escuro sempre com texto claro (contraste garantido pelo esquema).
-        FilledButton.icon(
+        const SizedBox(height: AppSpacing.md),
+        OutlinedButton.icon(
           onPressed: disabled ? null : () => _login(SocialProvider.apple),
           icon: const Icon(Icons.apple, size: 22),
           label: Text(
@@ -71,18 +73,12 @@ class _SocialLoginButtonsState extends ConsumerState<SocialLoginButtons> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(48),
-            backgroundColor: scheme.onSurface,
-            foregroundColor: scheme.surface,
-            disabledBackgroundColor: scheme.onSurface.withValues(alpha: .5),
-            disabledForegroundColor: scheme.surface.withValues(alpha: .9),
-          ),
+          style: buttonStyle,
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.lg),
         Text(
           'Ao continuar com Google ou Apple, você concorda com os Termos de uso e a Política de privacidade e declara ter 18 anos ou mais.',
-          style: theme.textTheme.bodySmall,
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500, height: 1.45),
         ),
       ],
     );

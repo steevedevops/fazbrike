@@ -122,7 +122,7 @@
 		position: absolute;
 		inset: 0;
 		background:
-			radial-gradient(ellipse 80% 50% at 20% 20%, rgba(196, 92, 38, 0.22), transparent 55%),
+			radial-gradient(ellipse 80% 50% at 20% 20%, rgba(255, 255, 255, 0.08), transparent 55%),
 			radial-gradient(ellipse 60% 40% at 90% 80%, rgba(255, 255, 255, 0.06), transparent 50%);
 		pointer-events: none;
 	}
@@ -135,9 +135,14 @@
 	}
 	.form {
 		width: 100%;
-		max-width: 340px;
+		max-width: 380px;
 		display: flex;
 		flex-direction: column;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-sm);
+		padding: 28px 24px 24px;
 	}
 	.head {
 		margin-bottom: 28px;
@@ -162,17 +167,7 @@
 		color: var(--ink);
 	}
 	input {
-		padding: 10px 12px;
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-sm);
-		background: var(--surface);
-		outline: none;
-		font-size: 14px;
-		transition: border-color 0.12s, box-shadow 0.12s;
-	}
-	input:focus {
-		border-color: var(--ink);
-		box-shadow: 0 0 0 3px var(--accent-soft);
+		height: 40px;
 	}
 	.error {
 		background: var(--danger-soft);

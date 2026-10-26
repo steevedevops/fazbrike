@@ -70,7 +70,8 @@
 	{/if}
 
 	{#each editable as f (f.key)}
-		<div class="field">
+		{@const wide = f.multiline || f.kind === 'text' && (f.key === 'description' || f.key.includes('content') || f.key.includes('detail') || String(f.label).length > 24)}
+		<div class="field" class:wide>
 			<label for={`f-${f.key}`}>
 				{f.label}
 				{#if f.required}<span class="req">*</span>{/if}
@@ -168,9 +169,14 @@
 
 <style>
 	.form {
-		display: flex;
-		flex-direction: column;
-		gap: 18px;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 16px 18px;
+	}
+	.info-box,
+	.field.wide,
+	.actions {
+		grid-column: 1 / -1;
 	}
 	.info-box {
 		background: var(--subtle);
@@ -229,35 +235,16 @@
 		border-radius: 999px;
 		border: 1px solid var(--border);
 	}
-	select,
-	input[type='text'],
-	input[type='email'],
-	input[type='password'],
-	input[type='number'],
-	textarea {
-		padding: 9px 12px;
-		border: 1px solid var(--border-strong);
-		border-radius: var(--radius-sm);
-		font-size: 13px;
-		resize: vertical;
-		outline: none;
-		background: var(--surface);
-		transition: border-color 0.15s, box-shadow 0.15s;
-	}
-	select:focus,
-	input:focus,
-	textarea:focus {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 3px var(--accent-soft);
-	}
-	input:disabled {
-		background: var(--subtle);
-		color: var(--muted);
-	}
 	.check-row {
-		display: inline-flex;
+		display: flex;
 		align-items: center;
 		gap: 8px;
+		height: 36px;
+		padding: 0 12px;
+		border: 1px solid var(--input);
+		border-radius: var(--radius-sm);
+		background: var(--surface);
+		box-shadow: var(--shadow-xs);
 		font-weight: 500;
 		color: var(--muted);
 		cursor: pointer;
@@ -271,8 +258,14 @@
 		display: flex;
 		justify-content: flex-end;
 		gap: 8px;
-		padding-top: 8px;
+		padding-top: 16px;
 		border-top: 1px solid var(--border);
 		margin-top: 4px;
+	}
+
+	@media (max-width: 720px) {
+		.form {
+			grid-template-columns: 1fr;
+		}
 	}
 </style>

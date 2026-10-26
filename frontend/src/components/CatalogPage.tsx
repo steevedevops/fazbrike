@@ -16,7 +16,7 @@ import {
   buildItemQuery,
   currentBrowseSort,
 } from '@/lib/browse';
-import { fieldClass, labelClass, panelClass } from '@/lib/ui-classes';
+import { fieldClass, labelClass } from '@/lib/ui-classes';
 
 interface CatalogPageProps {
   title: string;
@@ -69,8 +69,8 @@ function CatalogBrowse({
       />
       <div className="flex items-start gap-6 lg:gap-8">
         {/* Painel rola junto com a página: sem barra de rolagem interna. */}
-        <aside className="hidden w-72 shrink-0 lg:block">
-          <div className={`${panelClass} bg-surface p-5`} aria-label="Filtros">
+        <aside className="hidden w-64 shrink-0 lg:block">
+          <div className="sticky top-[84px]" aria-label="Filtros">
             <ListingFilters lockedCategory={lockedCategory} />
           </div>
         </aside>

@@ -14,7 +14,7 @@ export const sectionTitleClass = 'type-title text-ink';
 export const metaClass = 'type-meta text-muted';
 
 export const listingGridClass =
-  'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-5 gap-y-8';
+  'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 gap-y-5';
 
 export const listingRailClass =
   'flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory [scrollbar-width:thin]';
@@ -28,7 +28,7 @@ export const listingTileRowClass =
   'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4';
 
 export const listingBrowseClass =
-  'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4';
+  'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 gap-y-5';
 
 export const chipClass = `inline-flex items-center justify-center gap-2 min-h-8 px-3.5 type-meta font-medium rounded-pill border border-[color:var(--color-border)] bg-surface text-ink ${controlTransition} hover:border-ink/25`;
 

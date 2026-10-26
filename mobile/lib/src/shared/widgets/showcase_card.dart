@@ -37,7 +37,7 @@ class ShowcaseCard extends ConsumerWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    RemoteImage(url: item.imageUrl, fallbackAsset: categoryAsset(item.category)),
+                    RemoteImage(url: item.imageUrl),
                     Positioned(
                       left: AppSpacing.sm,
                       bottom: AppSpacing.sm,

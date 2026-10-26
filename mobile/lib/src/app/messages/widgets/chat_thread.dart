@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:fazbrike/services/api_services.dart';
 import 'package:fazbrike/src/app/auth/controllers/auth_controller.dart';
 import 'package:fazbrike/src/app/messages/controllers/messages_controller.dart';
-import 'package:fazbrike/src/shared/utils/app_utils.dart';
 import 'package:fazbrike/src/shared/utils/image_url.dart';
 import 'package:fazbrike/src/shared/widgets/error_view.dart';
 import 'package:fazbrike/src/shared/widgets/loading_view.dart';
@@ -81,7 +80,7 @@ class _ChatThreadState extends ConsumerState<ChatThread> {
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           if (value.attachmentUrl.isNotEmpty)
                             value.attachmentKind == 'image'
-                                ? GestureDetector(onTap: () => _open(value.attachmentUrl), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: RemoteImage(url: value.attachmentUrl, fallbackAsset: 'lib/assets/images/categories/outros.jpg', height: 190)))
+                                ? GestureDetector(onTap: () => _open(value.attachmentUrl), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: RemoteImage(url: value.attachmentUrl, height: 190)))
                                 : TextButton.icon(onPressed: () => _open(value.attachmentUrl), icon: const Icon(Icons.attach_file), label: Text(value.attachmentName.isEmpty ? 'Arquivo' : value.attachmentName)),
                           if (value.content.isNotEmpty) Text(value.content, style: TextStyle(color: mine ? Colors.white : AppColors.ink)),
                           Text(DateFormat.Hm('pt_BR').format(value.createdAt.toLocal()), style: TextStyle(fontSize: 11, color: mine ? Colors.white70 : AppColors.muted)),

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { CollectionMeta } from '$lib/types';
 	import type { Snippet } from 'svelte';
+	import Icon from './Icon.svelte';
 
 	interface Props {
 		collection?: CollectionMeta | null;
@@ -20,23 +21,17 @@
 	const heading = $derived(title ?? collection?.label ?? '…');
 </script>
 
-<header class="topbar">
-	<div class="left">
-		<nav class="crumbs" aria-label="Navegação">
-			<a href="/">Coleções</a>
-			{#if collection || title}
-				<span>/</span>
-				<strong>{heading}</strong>
-			{/if}
-		</nav>
+<header class="page-head">
+	<div class="titles">
+		<h1 class="page-title">{heading}</h1>
+		{#if collection}
+			<p class="page-sub">{collection.name}</p>
+		{/if}
 	</div>
 	<div class="right">
 		{#if onSearch}
 			<label class="search">
-				<svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-					<circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.25" />
-					<path d="M10.5 10.5 13.5 13.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" />
-				</svg>
+				<Icon name="search" size={15} />
 				<input type="search" oninput={(e) => onSearch(e.currentTarget.value)} placeholder={searchPlaceholder} />
 			</label>
 		{/if}
@@ -47,36 +42,15 @@
 </header>
 
 <style>
-	.topbar {
+	.page-head {
 		display: flex;
-		align-items: center;
+		align-items: flex-end;
 		justify-content: space-between;
 		gap: 16px;
-		padding-bottom: 16px;
-		margin-bottom: 4px;
-		border-bottom: 1px solid var(--border);
 		flex-wrap: wrap;
 	}
-	.crumbs {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		font-size: 14px;
-		letter-spacing: -0.02em;
-	}
-	.crumbs a {
-		color: var(--muted);
-		font-weight: 500;
-	}
-	.crumbs a:hover {
-		color: var(--ink);
-	}
-	.crumbs span {
-		color: var(--border-strong);
-	}
-	.crumbs strong {
-		font-weight: 600;
-		color: var(--ink);
+	.titles {
+		min-width: 0;
 	}
 	.right {
 		display: flex;
@@ -87,29 +61,35 @@
 	.search {
 		display: flex;
 		align-items: center;
-		gap: 7px;
-		padding: 7px 10px;
-		border: 1px solid var(--border);
+		gap: 8px;
+		height: 36px;
+		padding: 0 12px;
+		border: 1px solid var(--input);
 		border-radius: var(--radius-sm);
 		background: var(--surface);
-		min-width: 200px;
+		min-width: 240px;
+		color: var(--faint);
+		box-shadow: var(--shadow-xs);
 	}
 	.search:focus-within {
-		border-color: var(--ink);
-		box-shadow: 0 0 0 3px var(--accent-soft);
-	}
-	.search svg {
-		width: 13px;
-		height: 13px;
-		color: var(--faint);
-		flex-shrink: 0;
+		border-color: var(--ring);
+		box-shadow: 0 0 0 3px var(--ring-soft);
 	}
 	.search input {
 		border: none;
 		outline: none;
 		background: transparent;
 		width: 100%;
+		height: 100%;
 		padding: 0;
-		font-size: 13px;
+		font-size: 13.5px;
+		box-shadow: none;
+	}
+
+	@media (max-width: 720px) {
+		.search {
+			min-width: 0;
+			width: 100%;
+		}
 	}
 </style>

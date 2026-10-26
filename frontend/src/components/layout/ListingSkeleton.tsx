@@ -26,7 +26,11 @@ export function ListingSkeleton({ count = 8, layout = 'grid' }: ListingSkeletonP
     return (
       <div className={listingBrowseClass} aria-hidden>
         {Array.from({ length: count }).map((_, index) => (
-          <div key={index} className="aspect-[4/5] animate-pulse rounded-card bg-subtle" />
+          <div key={index} className="flex flex-col">
+            <div className="aspect-square animate-pulse rounded-card bg-subtle" />
+            <div className="mt-2 h-4 w-3/4 animate-pulse rounded-control bg-subtle" />
+            <div className="mt-1 h-3 w-1/2 animate-pulse rounded-control bg-subtle" />
+          </div>
         ))}
       </div>
     );

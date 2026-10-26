@@ -10,7 +10,7 @@ Future<void> _pumpAuth(WidgetTester tester) async {
   // Tela de celular: no padrão 800x600 do teste o botão fica fora da área
   // visível e não recebe toque.
   // Altura cobre o cadastro inteiro (inclui a linha de aceite dos termos).
-  tester.view.physicalSize = const Size(1200, 3300);
+  tester.view.physicalSize = const Size(1200, 4800);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -44,9 +44,28 @@ void main() {
       await tester.tap(find.text('Criar conta').first);
       await tester.pumpAndSettle();
 
+      expect(find.text('Passo 1 de 3'), findsOneWidget);
       expect(find.text('Nome completo'), findsOneWidget);
-      expect(find.text('Confirmar senha'), findsOneWidget);
+      expect(find.text('Email'), findsOneWidget);
+      expect(find.text('Confirmar senha'), findsNothing);
       expect(find.text('Junte-se à comunidade Fazbrike.'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Continuar'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'Maria Silva');
+      await tester.enterText(find.byType(TextFormField).at(1), 'maria@exemplo.com');
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Passo 2 de 3'), findsOneWidget);
+      expect(find.text('Confirmar senha'), findsOneWidget);
+      expect(find.textContaining('termos de uso'), findsNothing);
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'senha12345');
+      await tester.enterText(find.byType(TextFormField).at(1), 'senha12345');
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Passo 3 de 3'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Criar conta'), findsOneWidget);
       expect(find.textContaining('termos de uso'), findsOneWidget);
     });
@@ -55,18 +74,22 @@ void main() {
       await _pumpAuth(tester);
       await tester.tap(find.text('Criar conta').first);
       await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).at(0), 'Maria Silva');
+      await tester.enterText(find.byType(TextFormField).at(1), 'maria@exemplo.com');
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
 
       expect(find.textContaining('Força da senha'), findsNothing);
 
-      await tester.enterText(find.byType(TextFormField).at(2), 'abc');
+      await tester.enterText(find.byType(TextFormField).at(0), 'abc');
       await tester.pumpAndSettle();
       expect(find.text('Força da senha: Fraca'), findsOneWidget);
 
-      await tester.enterText(find.byType(TextFormField).at(2), 'abc123');
+      await tester.enterText(find.byType(TextFormField).at(0), 'abc123');
       await tester.pumpAndSettle();
       expect(find.text('Força da senha: Média'), findsOneWidget);
 
-      await tester.enterText(find.byType(TextFormField).at(2), 'senha12345');
+      await tester.enterText(find.byType(TextFormField).at(0), 'senha12345');
       await tester.pumpAndSettle();
       expect(find.text('Força da senha: Forte'), findsOneWidget);
     });
@@ -86,7 +109,7 @@ void main() {
     testWidgets('painel não estoura em tela estreita com fonte ampliada', (tester) async {
       tester.platformDispatcher.textScaleFactorTestValue = 1.3;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-      tester.view.physicalSize = const Size(960, 4200); // 320 px lógicos de largura
+      tester.view.physicalSize = const Size(960, 5400); // 320 px lógicos de largura
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -104,9 +127,11 @@ void main() {
 
       await tester.enterText(find.byType(TextFormField).at(0), 'Maria Silva');
       await tester.enterText(find.byType(TextFormField).at(1), 'maria@exemplo.com');
-      await tester.enterText(find.byType(TextFormField).at(2), 'curta1');
-      await tester.enterText(find.byType(TextFormField).at(3), 'curta1');
-      await tester.tap(find.widgetWithText(FilledButton, 'Criar conta'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).at(0), 'curta1');
+      await tester.enterText(find.byType(TextFormField).at(1), 'curta1');
+      await tester.tap(find.widgetWithText(FilledButton, 'Continuar'));
       await tester.pumpAndSettle();
 
       expect(find.text('A senha deve ter pelo menos 8 caracteres.'), findsOneWidget);

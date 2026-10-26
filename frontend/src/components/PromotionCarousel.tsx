@@ -13,7 +13,7 @@ import { containerClass, cx } from '@/lib/ui-classes';
 
 /**
  * Banners de campanha da home. O destino já vem resolvido do backend, então o
- * clique navega dentro do próprio site — as mesmas rotas que o app usa.
+ * clique navega dentro do próprio site, nas mesmas rotas que o app usa.
  */
 export function PromotionCarousel() {
   const router = useRouter();
@@ -64,14 +64,14 @@ export function PromotionCarousel() {
   if (loading || promotions.length === 0) return null;
 
   return (
-    <section className={`${containerClass} pt-6`} aria-label="Promoções">
-      <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory [scrollbar-width:thin]">
+    <section className={`${containerClass} pt-4`} aria-label="Promoções">
+      <div className="rail-scroll flex gap-3 overflow-x-auto pb-1 snap-x snap-mandatory">
         {promotions.map((promotion) => {
           const clickable = isClickableTarget(promotion.target);
           return (
             <div
               key={promotion.id}
-              className="w-[calc(100%-1rem)] shrink-0 snap-start sm:w-[520px]"
+              className="w-[calc(100%-2.5rem)] shrink-0 snap-start sm:w-[440px]"
             >
               <button
                 type="button"
@@ -79,11 +79,11 @@ export function PromotionCarousel() {
                 disabled={!clickable}
                 aria-label={
                   promotion.target.label
-                    ? `${promotion.title} — abre ${promotion.target.label}`
+                    ? `${promotion.title}, abre ${promotion.target.label}`
                     : promotion.title
                 }
                 className={cx(
-                  'relative block h-[200px] w-full overflow-hidden rounded-card text-left sm:h-[220px]',
+                  'relative block h-[140px] w-full overflow-hidden rounded-card text-left',
                   clickable ? 'cursor-pointer' : 'cursor-default'
                 )}
               >
@@ -92,15 +92,14 @@ export function PromotionCarousel() {
                   alt=""
                   className="absolute inset-0 h-full w-full object-cover object-center"
                 />
-                {/* Véu fixo: garante contraste do texto sobre qualquer arte. */}
                 <div className="absolute inset-0 bg-ink/55" />
-                <div className="absolute inset-0 flex flex-col justify-end p-6">
-                  <p className="type-title text-white">{promotion.title}</p>
+                <div className="absolute inset-0 flex flex-col justify-end p-4">
+                  <p className="type-title line-clamp-1 text-white">{promotion.title}</p>
                   {promotion.subtitle ? (
-                    <p className="type-meta mt-1 text-white/80">{promotion.subtitle}</p>
+                    <p className="type-meta mt-0.5 line-clamp-1 text-white/80">{promotion.subtitle}</p>
                   ) : null}
                   {clickable && promotion.cta_label ? (
-                    <span className="mt-4 inline-flex w-fit items-center rounded-pill bg-brand-500 px-4 py-1.5 type-meta font-semibold text-white">
+                    <span className="mt-2 inline-flex w-fit items-center rounded-pill bg-brand-500 px-3 py-1 type-meta font-semibold text-white">
                       {promotion.cta_label}
                     </span>
                   ) : null}
