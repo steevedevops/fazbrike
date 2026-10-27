@@ -23,6 +23,7 @@ interface ProductGridProps {
   compact?: boolean;
   hideWhenEmpty?: boolean;
   header?: React.ReactNode;
+  gridClass?: string;
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({
@@ -32,6 +33,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   compact = false,
   hideWhenEmpty = false,
   header,
+  gridClass,
 }) => {
   const { items, error, loadItems } = useItems();
   const searchParams = useSearchParams();
@@ -108,7 +110,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     return (
       <>
         {header}
-        <div className={listingBrowseClass}>
+        <div className={gridClass || listingBrowseClass}>
           {shown.map((item) => (
             <ProductCard
               key={item.id}

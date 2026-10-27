@@ -44,11 +44,11 @@ export function AffiliateProductRail() {
           ? Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="h-[360px] w-[220px] shrink-0 animate-pulse rounded-card border border-[color:var(--color-border)] bg-subtle sm:w-[240px]"
+                className="h-[360px] w-[280px] shrink-0 animate-pulse rounded-card border border-[color:var(--color-border)] bg-subtle"
               />
             ))
           : products.map((product) => (
-              <div key={product.id} className="w-[220px] shrink-0 snap-start sm:w-[240px]">
+              <div key={product.id} className="w-[280px] shrink-0 snap-start">
                 <AffiliateProductCard product={product} compact />
               </div>
             ))}

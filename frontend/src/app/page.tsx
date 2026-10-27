@@ -4,28 +4,50 @@ import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { PageShell } from '@/components/PageShell';
 import { AffiliateProductRail } from '@/components/AffiliateProductRail';
-import { PromotionCarousel } from '@/components/PromotionCarousel';
+import {
+  PromotionHero,
+  PromotionRail,
+  useHomePromotions,
+} from '@/components/PromotionCarousel';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { ProductGrid } from '@/components/ProductGrid';
 import { SectionHeader } from '@/components/layout/SectionHeader';
-import { ListingSkeleton } from '@/components/layout/ListingSkeleton';
 import { CATEGORIES } from '@/lib/catalog';
 import { containerClass, navLinkClass, sectionTitleClass } from '@/lib/ui-classes';
 
+const homeGridClass = 'grid grid-cols-2 gap-x-4 gap-y-6 md:grid-cols-3 xl:grid-cols-4';
+
+function HomeSkeleton() {
+  return (
+    <div className={homeGridClass} aria-hidden>
+      {Array.from({ length: 8 }).map((_, index) => (
+        <div key={index} className="flex flex-col">
+          <div className="aspect-square animate-pulse rounded-card bg-subtle" />
+          <div className="mt-2 h-4 w-3/4 animate-pulse rounded-control bg-subtle" />
+          <div className="mt-1 h-3 w-1/2 animate-pulse rounded-control bg-subtle" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Home() {
+  const { promotions, loading } = useHomePromotions();
+  const [featured, ...rest] = promotions;
   const header = (
     <SectionHeader
-      title="Novidades"
-      subtitle="Acabaram de chegar na vitrine"
+      title="Em destaque"
       href="/novidades"
-      linkLabel="Ver todas"
+      linkLabel="Ver tudo"
       divider={false}
     />
   );
 
   return (
     <PageShell flush>
-      <section className={`${containerClass} pt-5`} aria-label="Categorias">
+      <PromotionHero promotion={featured} loading={loading} />
+
+      <section className={`${containerClass} pt-6`} aria-label="Categorias">
         <div className="mb-3 flex items-end justify-between gap-4">
           <h2 className={sectionTitleClass}>Categorias</h2>
           <Link href="/geral" className={navLinkClass}>
@@ -50,20 +72,20 @@ export default function Home() {
         </div>
       </section>
 
-      <PromotionCarousel />
-
-      <section className={`${containerClass} pt-6`} aria-label="Novidades">
+      <section className={`${containerClass} pt-8`} aria-label="Em destaque">
         <Suspense
           fallback={
             <>
               {header}
-              <ListingSkeleton layout="tiles" count={10} />
+              <HomeSkeleton />
             </>
           }
         >
-          <ProductGrid query="" layout="tiles" header={header} />
+          <ProductGrid query="" layout="tiles" header={header} gridClass={homeGridClass} />
         </Suspense>
       </section>
+
+      <PromotionRail promotions={rest} />
 
       <div className="pb-16">
         <AffiliateProductRail />

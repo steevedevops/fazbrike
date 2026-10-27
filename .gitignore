@@ -37,3 +37,4 @@ yarn-error.log*
 
 # Nested frontend git backup (pre-monorepo)
 frontend/.git.bak-frontend/
+mobile/android/app/google-services.json
