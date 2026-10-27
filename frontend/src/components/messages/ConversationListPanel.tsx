@@ -29,7 +29,7 @@ export function ConversationListPanel({ conversations, selectedKey, onSelect }: 
   }
 
   return (
-    <ul className="divide-y divide-[color:var(--color-border)] overflow-y-auto flex-1">
+    <ul className="min-h-0 flex-1 divide-y divide-[color:var(--color-border)] overflow-y-auto">
       {conversations.map((conv) => {
         const key = conversationKey(conv);
         const unread = conv.unread_count || 0;

@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { PageShell } from '@/components/PageShell';
 import { AffiliateProductRail } from '@/components/AffiliateProductRail';
 import {
-  PromotionHero,
   PromotionRail,
+  PromotionSlider,
   useHomePromotions,
 } from '@/components/PromotionCarousel';
 import { CategoryIcon } from '@/components/CategoryIcon';
@@ -33,7 +33,7 @@ function HomeSkeleton() {
 
 export default function Home() {
   const { promotions, loading } = useHomePromotions();
-  const [featured, ...rest] = promotions;
+  const [, ...rest] = promotions;
   const header = (
     <SectionHeader
       title="Em destaque"
@@ -45,7 +45,7 @@ export default function Home() {
 
   return (
     <PageShell flush>
-      <PromotionHero promotion={featured} loading={loading} />
+      <PromotionSlider promotions={promotions} loading={loading} />
 
       <section className={`${containerClass} pt-6`} aria-label="Categorias">
         <div className="mb-3 flex items-end justify-between gap-4">

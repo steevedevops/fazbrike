@@ -3,12 +3,11 @@
 import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PageShell, PageSpinner } from '@/components/PageShell';
-import { EmptyState } from '@/components/layout/EmptyState';
 import { apiService, Conversation } from '@/lib/services/api';
 import { useAuth } from '@/hooks/useAuth';
 import { ConversationListPanel, conversationKey } from '@/components/messages/ConversationListPanel';
 import { ChatThread } from '@/components/messages/ChatThread';
-import { cx } from '@/lib/ui-classes';
+import { containerClass, cx } from '@/lib/ui-classes';
 
 interface SelectedThread {
   itemId: number;
@@ -106,14 +105,15 @@ function MessagesPageContent() {
 
   return (
     <PageShell flush showFooter={false}>
-      <div className="h-[calc(100vh-68px)] flex overflow-hidden">
+      <div className={`${containerClass} flex h-[calc(100vh-68px)] flex-col py-4 sm:py-5`}>
+        <div className="flex min-h-0 flex-1 overflow-hidden rounded-card border border-[color:var(--color-border)] bg-surface shadow-card">
         <aside
           className={cx(
-            'w-full lg:w-[360px] lg:shrink-0 lg:border-r border-[color:var(--color-border)] flex-col min-h-0 bg-surface',
+            'w-full lg:w-[340px] lg:shrink-0 lg:border-r border-[color:var(--color-border)] flex-col min-h-0 bg-surface',
             hasSelection ? 'hidden lg:flex' : 'flex'
           )}
         >
-          <div className="px-4 py-4 border-b border-[color:var(--color-border)] shrink-0">
+          <div className="flex min-h-[76px] shrink-0 flex-col justify-center border-b border-[color:var(--color-border)] px-4 py-3">
             <h1 className="type-title text-ink">Mensagens</h1>
             <p className="type-meta text-muted mt-0.5">Conversas com compradores e vendedores.</p>
           </div>
@@ -137,14 +137,15 @@ function MessagesPageContent() {
               onMessagesRead={fetchConversations}
             />
           ) : (
-            <div className="flex-1 flex items-center justify-center p-8">
-              <EmptyState
-                title="Selecione uma conversa"
-                description="Escolha uma conversa na lista para ver as mensagens."
-              />
+            <div className="flex flex-1 items-center justify-center p-8">
+              <div className="max-w-sm text-center">
+                <p className="type-title text-ink">Selecione uma conversa</p>
+                <p className="type-meta mt-2 text-muted">Escolha uma conversa na lista para ver as mensagens.</p>
+              </div>
             </div>
           )}
         </section>
+        </div>
       </div>
     </PageShell>
   );

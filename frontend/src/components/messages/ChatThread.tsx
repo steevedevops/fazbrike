@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { apiService, Message, MessageAttachment, resolveImageUrl } from '@/lib/services/api';
 import { useAuth } from '@/hooks/useAuth';
 import { formatMessageTime } from '@/lib/messageTime';
@@ -216,25 +217,29 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="px-4 py-3 bg-ink flex justify-between items-center gap-3 shrink-0">
-        <div className="flex items-center gap-2.5 min-w-0">
-          {onBack ? (
-            <button
-              type="button"
-              onClick={onBack}
-              className={`${iconButtonClass} text-white hover:text-white hover:bg-white/10 -ml-1.5 lg:hidden`}
-              aria-label="Voltar para as conversas"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          ) : null}
-          <Avatar url={otherUserAvatarUrl} name={otherUserName} size={32} />
-          <div className="min-w-0">
-            <h3 className="font-semibold text-white type-meta truncate">{otherUserName}</h3>
-            <p className="text-[12px] text-white/70 truncate">{itemTitle}</p>
-          </div>
+      <div className="flex min-h-[76px] shrink-0 items-center gap-3 border-b border-[color:var(--color-border)] bg-surface px-4 py-3">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className={`${iconButtonClass} -ml-1.5 lg:hidden`}
+            aria-label="Voltar para as conversas"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        ) : null}
+        <Avatar url={otherUserAvatarUrl} name={otherUserName} size={40} />
+        <div className="min-w-0">
+          <h2 className="truncate type-body font-semibold text-ink">{otherUserName}</h2>
+          {itemId ? (
+            <Link href={`/produto/${itemId}`} className="block truncate type-meta text-muted hover:text-ink">
+              {itemTitle}
+            </Link>
+          ) : (
+            <p className="truncate type-meta text-muted">{itemTitle}</p>
+          )}
         </div>
       </div>
 
